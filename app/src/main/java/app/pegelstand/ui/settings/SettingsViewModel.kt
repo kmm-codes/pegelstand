@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.pegelstand.data.WaterRepository
+import app.pegelstand.domain.BottleMode
 import app.pegelstand.domain.Settings
 import app.pegelstand.domain.SettingsRules
 import app.pegelstand.domain.WaterColor
@@ -59,6 +60,8 @@ class SettingsViewModel(private val repository: WaterRepository) : ViewModel() {
     }
 
     fun setWaterColor(color: WaterColor) = write { repository.setWaterColor(color) }
+
+    fun setBottleMode(mode: BottleMode) = write { repository.setBottleMode(mode) }
 
     fun setRemindersEnabled(enabled: Boolean) = write { repository.setRemindersEnabled(enabled) }
 

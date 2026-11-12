@@ -8,6 +8,7 @@ data class Settings(
     val dailyGoalMl: Int = SettingsRules.DEFAULT_GOAL_ML,
     val mlPerTap: Int = SettingsRules.DEFAULT_ML_PER_TAP,
     val waterColor: WaterColor = WaterColor.DEFAULT,
+    val bottleMode: BottleMode = BottleMode.DEFAULT,
     val remindersEnabled: Boolean = true,
     val remindFrom: LocalTime = SettingsRules.DEFAULT_REMIND_FROM,
     val remindUntil: LocalTime = SettingsRules.DEFAULT_REMIND_UNTIL,

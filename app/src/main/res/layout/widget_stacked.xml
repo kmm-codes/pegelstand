@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Square and tall widgets: bottle above the amount, streak chip top left, undo top right.
+     Sizes are set per widget size from WidgetLayout on Android 12+; the XML values are the
+     fallback before that. Taps on the root add an intake. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:padding="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <!-- Row for chip and undo above the bottle, when that gives the larger bottle. -->
+        <FrameLayout
+            android:id="@+id/widget_control_row"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:visibility="gone" />
+
+        <!-- Bottle image and flipper container share one size (set per widget size on Android 12+),
+             so the last animation frame lands exactly on the static image. -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/widget_bottle"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:contentDescription="@string/widget_bottle"
+                android:scaleType="fitCenter" />
+
+            <!-- Holds the animation flipper while a level change plays; empty otherwise. -->
+            <FrameLayout
+                android:id="@+id/widget_frames"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:importantForAccessibility="noHideDescendants" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/widget_amount"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingHorizontal="8dp"
+            android:textColor="@color/widget_on_surface"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/widget_chip_box"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_gravity="top|start">
+
+        <TextView
+            android:id="@+id/widget_chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:background="@drawable/widget_chip"
+            android:maxLines="1"
+            android:paddingHorizontal="7dp"
+            android:paddingVertical="2dp"
+            android:textColor="@color/widget_on_chip"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/widget_undo"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:contentDescription="@string/widget_undo_description">
+
+        <ImageView
+            android:id="@+id/widget_undo_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_widget_undo"
+            android:tint="@color/widget_on_surface" />
+    </FrameLayout>
+</FrameLayout>

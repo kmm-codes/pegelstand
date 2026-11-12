@@ -4,6 +4,7 @@ import app.pegelstand.data.db.DayTotalRow
 import app.pegelstand.data.db.IntakeEntity
 import app.pegelstand.data.db.WaterDao
 import app.pegelstand.data.db.DayGoalEntity
+import app.pegelstand.domain.BottleMode
 import app.pegelstand.domain.DayTotal
 import app.pegelstand.domain.LogicalDay
 import app.pegelstand.domain.ReminderState
@@ -40,10 +41,14 @@ data class TodayState(
     val goalMl: Int,
     val mlPerTap: Int,
     val waterColor: WaterColor,
+    val bottleMode: BottleMode,
     val streak: Streak,
 ) {
     val hasIntakeToday: Boolean get() = totalMl > 0
     val goalReached: Boolean get() = totalMl >= goalMl
+
+    /** The bottle level to draw (0..1), in the direction of [bottleMode]. */
+    val shownFill: Float get() = app.pegelstand.domain.shownFill(totalMl, goalMl, bottleMode)
 }
 
 /**
@@ -110,6 +115,7 @@ class WaterRepository(
                 goalMl = goal,
                 mlPerTap = settings.mlPerTap,
                 waterColor = settings.waterColor,
+                bottleMode = settings.bottleMode,
                 streak = Streaks.compute(days, day),
             )
         }
@@ -167,6 +173,12 @@ class WaterRepository(
 
     suspend fun setWaterColor(color: WaterColor) = withContext(NonCancellable) {
         settingsStore.setWaterColor(color)
+        afterSettingsWrite(time.now(), affectsWidget = true)
+    }
+
+    /** A change of direction, not of the level: the widgets update statically. */
+    suspend fun setBottleMode(mode: BottleMode) = withContext(NonCancellable) {
+        settingsStore.setBottleMode(mode)
         afterSettingsWrite(time.now(), affectsWidget = true)
     }
 

@@ -95,7 +95,7 @@ fun TodaySection(
     onUndo: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val target = if (today.goalMl > 0) (today.totalMl.toFloat() / today.goalMl).coerceIn(0f, 1f) else 0f
+    val target = today.shownFill
     val level = remember { Animatable(target) }
     LaunchedEffect(target, animationsEnabled) {
         if (animationsEnabled) level.animateTo(target, tween(LEVEL_EASE_MS, easing = FastOutSlowInEasing)) else level.snapTo(target)

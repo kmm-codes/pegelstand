@@ -38,6 +38,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -66,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pegelstand.R
 import app.pegelstand.domain.AmountFormat
+import app.pegelstand.domain.BottleMode
 import app.pegelstand.domain.SettingsRules
 import app.pegelstand.domain.WaterColor
 import app.pegelstand.ui.common.ScreenPadding
@@ -154,6 +158,8 @@ fun SettingsScreen(
                 }
                 Spacer(Modifier.height(14.dp))
                 Swatches(selected = state.settings.waterColor, onSelect = viewModel::setWaterColor)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(vertical = 12.dp))
+                BottleModeChoice(selected = state.settings.bottleMode, onSelect = viewModel::setBottleMode)
             }
 
             SoftCard {
@@ -334,6 +340,37 @@ private fun Swatches(selected: WaterColor, onSelect: (WaterColor) -> Unit) {
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/** "Flasche": fills up or drains as she drinks. */
+@Composable
+private fun BottleModeChoice(selected: BottleMode, onSelect: (BottleMode) -> Unit) {
+    Text(
+        text = stringResource(R.string.settings_bottle),
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.padding(bottom = 10.dp),
+    )
+    val modes = BottleMode.entries
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        modes.forEachIndexed { index, mode ->
+            SegmentedButton(
+                selected = mode == selected,
+                onClick = { onSelect(mode) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size),
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                Text(
+                    text = stringResource(
+                        when (mode) {
+                            BottleMode.FILL -> R.string.settings_bottle_fill
+                            BottleMode.DRAIN -> R.string.settings_bottle_drain
+                        },
+                    ),
+                    maxLines = 1,
+                )
             }
         }
     }

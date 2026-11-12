@@ -7,4 +7,6 @@
     <color name="widget_surface">#FF10181F</color>
     <color name="widget_on_surface">#FFE1F5FE</color>
     <color name="widget_chip">#FF3A2C12</color>
+    <color name="widget_on_chip">#FFFFD98A</color>
+    <color name="widget_gold_text">#FFFFC94D</color>
 </resources>

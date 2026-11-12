@@ -5,6 +5,8 @@ import android.graphics.LinearGradient
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.graphics.Shader
 import androidx.core.graphics.withClip
@@ -13,6 +15,7 @@ import app.pegelstand.domain.WaterColor
 import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
@@ -46,6 +49,14 @@ class BottleRenderer {
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
     }
+
+    private val goldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+
+    // Unit gradients (0..1 vertically), positioned per frame through the local matrix.
+    private val goldGlow = LinearGradient(0f, 0f, 0f, 1f, GLOW_COLOR and 0x00FFFFFF, GLOW_COLOR, Shader.TileMode.CLAMP)
+    private val goldGlowDark = LinearGradient(0f, 0f, 0f, 1f, PegelColors.GOLD and 0x00FFFFFF, PegelColors.GOLD, Shader.TileMode.CLAMP)
+    private val screen = PorterDuffXfermode(PorterDuff.Mode.SCREEN)
+    private val goldLayer = LinearGradient(0f, 0f, 0f, 1f, PegelColors.GOLD, PegelColors.GOLD_DEEP, Shader.TileMode.CLAMP)
 
     private val shaderMatrix = Matrix()
     private var waterShader: LinearGradient? = null
@@ -84,18 +95,43 @@ class BottleRenderer {
         waterColor: WaterColor,
         goalReached: Boolean,
         dark: Boolean,
+    ) = draw(canvas, width, height, fillFraction, wavePhase, waterColor, goldMix = if (goalReached) 1f else 0f, dark = dark)
+
+    /**
+     * Like the other overload, with the "goal reached" look blended in by [goldMix] (0 = normal,
+     * 1 = gold, clamped): accent colour, cap edge and sparkles fade in together. 0 and 1 draw
+     * exactly what `goalReached = false / true` draws; the widget animation uses the values between.
+     */
+    fun draw(
+        canvas: Canvas,
+        width: Float,
+        height: Float,
+        fillFraction: Float,
+        wavePhase: Float,
+        waterColor: WaterColor,
+        goldMix: Float,
+        dark: Boolean,
     ) {
         if (width <= 0f || height <= 0f) return
         if (width != lastWidth || height != lastHeight) layout(width, height)
         val palette = PegelColors.of(dark)
         val fraction = if (fillFraction.isNaN()) 0f else fillFraction.coerceIn(0f, 1f)
-        val accent = if (goalReached) PegelColors.GOLD else palette.outline
+        val gold = if (goldMix.isNaN()) 0f else goldMix.coerceIn(0f, 1f)
+        val accent = when {
+            gold <= 0f -> palette.outline
+            gold >= 1f -> PegelColors.GOLD
+            else -> blend(palette.outline, PegelColors.GOLD, gold)
+        }
 
         // Glass, water and reflection, clipped to the inside of the bottle.
         canvas.withClip(outlinePath) {
             fillPaint.color = palette.glassTint
             drawPath(outlinePath, fillPaint)
             if (fraction > 0f) drawWater(this, fraction, wavePhase, waterColor)
+            // Goal reached with an (almost) empty bottle only happens in the draining direction:
+            // a golden glow and a thin golden layer make it read as "done", not as "empty".
+            val emptyGold = gold * (1f - fraction / EMPTY_GOLD_RANGE).coerceIn(0f, 1f)
+            if (emptyGold > 0f) drawEmptyGold(this, emptyGold, wavePhase, dark)
             fillPaint.color = palette.highlight
             val radius = highlightRect.width() / 2f
             drawRoundRect(highlightRect, radius, radius, fillPaint)
@@ -108,11 +144,11 @@ class BottleRenderer {
         fillPaint.color = accent
         val capRadius = capRect.height() * 0.35f
         canvas.drawRoundRect(capRect, capRadius, capRadius, fillPaint)
-        if (goalReached) {
-            strokePaint.color = PegelColors.GOLD_DEEP
+        if (gold > 0f) {
+            strokePaint.color = withAlpha(PegelColors.GOLD_DEEP, gold)
             strokePaint.strokeWidth = stroke * 0.5f
             canvas.drawRoundRect(capRect, capRadius, capRadius, strokePaint)
-            drawSparkles(canvas)
+            drawSparkles(canvas, gold)
         }
     }
 
@@ -123,10 +159,23 @@ class BottleRenderer {
         // The wave flattens out near empty and near full, so 0 % and 100 % look calm.
         val taper = min(1f, fraction / WAVE_TAPER) * min(1f, (1f - fraction) / WAVE_TAPER)
         val amplitude = boxHeight * WAVE_AMPLITUDE * max(0f, taper)
+        buildWave(level, amplitude, wavePhase)
+
+        val top = level - amplitude
+        shaderMatrix.setScale(1f, max(1f, bottom - top))
+        shaderMatrix.postTranslate(0f, top)
+        val shader = shaderFor(waterColor)
+        shader.setLocalMatrix(shaderMatrix)
+        waterPaint.shader = shader
+        canvas.drawPath(wavePath, waterPaint)
+    }
+
+    /** The surface wave at [level] down to below the bottom, into [wavePath]. */
+    private fun buildWave(level: Float, amplitude: Float, wavePhase: Float) {
+        val bottom = y(1f)
         val left = innerLeft - stroke
         val right = innerLeft + innerWidth + stroke
         val span = right - left
-
         wavePath.reset()
         for (i in 0..WAVE_SEGMENTS) {
             val t = i.toFloat() / WAVE_SEGMENTS
@@ -137,14 +186,37 @@ class BottleRenderer {
         wavePath.lineTo(right, bottom + stroke)
         wavePath.lineTo(left, bottom + stroke)
         wavePath.close()
+    }
 
-        val top = level - amplitude
+    /**
+     * The "reached" look of an empty bottle, faded in by [strength]: a warm glow rising from the
+     * bottom and a thin golden layer where the water was. Called inside the bottle's clip.
+     */
+    private fun drawEmptyGold(canvas: Canvas, strength: Float, wavePhase: Float, dark: Boolean) {
+        val bottom = y(1f)
+        val glowTop = y(EMPTY_GOLD_GLOW_TOP)
+        shaderMatrix.setScale(1f, max(1f, bottom - glowTop))
+        shaderMatrix.postTranslate(0f, glowTop)
+        // On the dark glass a plain blend turns grey-brown; screening keeps it a lit, warm gold.
+        val glow = if (dark) goldGlowDark else goldGlow
+        glow.setLocalMatrix(shaderMatrix)
+        goldPaint.shader = glow
+        goldPaint.alpha = (255 * EMPTY_GOLD_GLOW_ALPHA * strength).roundToInt()
+        goldPaint.xfermode = if (dark) screen else null
+        canvas.drawRect(innerLeft - stroke, glowTop, innerLeft + innerWidth + stroke, bottom + stroke, goldPaint)
+        goldPaint.xfermode = null
+
+        val level = bottom - EMPTY_GOLD_LAYER * (bottom - y(FULL_LEVEL))
+        buildWave(level, boxHeight * WAVE_AMPLITUDE * 0.35f, wavePhase)
+        val top = level - boxHeight * WAVE_AMPLITUDE
         shaderMatrix.setScale(1f, max(1f, bottom - top))
         shaderMatrix.postTranslate(0f, top)
-        val shader = shaderFor(waterColor)
-        shader.setLocalMatrix(shaderMatrix)
-        waterPaint.shader = shader
-        canvas.drawPath(wavePath, waterPaint)
+        val layer = goldLayer
+        layer.setLocalMatrix(shaderMatrix)
+        goldPaint.shader = layer
+        goldPaint.alpha = (255 * strength).roundToInt()
+        canvas.drawPath(wavePath, goldPaint)
+        goldPaint.shader = null
     }
 
     private fun shaderFor(waterColor: WaterColor): LinearGradient {
@@ -157,12 +229,14 @@ class BottleRenderer {
         }
     }
 
-    private fun drawSparkles(canvas: Canvas) {
-        fillPaint.color = PegelColors.GOLD
+    /** Sparkles fade and grow in with [gold]; at 1 they are drawn at full size and opacity. */
+    private fun drawSparkles(canvas: Canvas, gold: Float) {
+        fillPaint.color = withAlpha(PegelColors.GOLD, gold)
+        val grow = SPARKLE_START_SCALE + (1f - SPARKLE_START_SCALE) * gold
         for (i in SPARKLES.indices step 3) {
             val cx = boxLeft + SPARKLES[i] * boxWidth
             val cy = boxTop + SPARKLES[i + 1] * boxHeight
-            val r = SPARKLES[i + 2] * boxWidth
+            val r = SPARKLES[i + 2] * boxWidth * grow
             canvas.withTranslation(cx, cy) {
                 scale(r, r)
                 drawPath(sparklePath, fillPaint)
@@ -212,6 +286,23 @@ class BottleRenderer {
         highlightRect.set(x(HIGHLIGHT_LEFT), y(HIGHLIGHT_TOP), x(HIGHLIGHT_RIGHT), y(HIGHLIGHT_BOTTOM))
     }
 
+    /** [color] with its alpha multiplied by [factor] (0..1); factor 1 returns [color] unchanged. */
+    private fun withAlpha(color: Int, factor: Float): Int {
+        if (factor >= 1f) return color
+        val alpha = ((color ushr 24) * factor).roundToInt().coerceIn(0, 255)
+        return (alpha shl 24) or (color and 0x00FFFFFF)
+    }
+
+    /** Per-channel linear blend of two opaque ARGB colours. */
+    private fun blend(from: Int, to: Int, t: Float): Int {
+        fun channel(shift: Int): Int {
+            val a = (from ushr shift) and 0xFF
+            val b = (to ushr shift) and 0xFF
+            return (a + (b - a) * t).roundToInt().coerceIn(0, 255) shl shift
+        }
+        return channel(24) or channel(16) or channel(8) or channel(0)
+    }
+
     private fun x(fraction: Float): Float = innerLeft + fraction * innerWidth
 
     private fun y(fraction: Float): Float = innerTop + fraction * innerHeight
@@ -246,6 +337,22 @@ class BottleRenderer {
         private const val WAVE_TAPER = 0.08f
         private const val WAVE_CYCLES = 1.4f
         private const val WAVE_SEGMENTS = 32
+
+        /** Below this level the gold state also shows the empty-bottle glow (draining direction). */
+        private const val EMPTY_GOLD_RANGE = 0.08f
+
+        /** The empty-bottle glow rises from the bottom to this height (fraction of the inner height). */
+        private const val EMPTY_GOLD_GLOW_TOP = 0.42f
+        private const val EMPTY_GOLD_GLOW_ALPHA = 0.55f
+
+        /** A light, warm gold for the glow, so it reads as light rather than as a murky residue. */
+        private const val GLOW_COLOR: Int = 0xFFFFE08A.toInt()
+
+        /** Thickness of the thin golden layer, as a fill fraction. */
+        private const val EMPTY_GOLD_LAYER = 0.045f
+
+        /** Sparkle size at the start of the gold blend, relative to their full size. */
+        private const val SPARKLE_START_SCALE = 0.4f
 
         /** Sparkles beside the bottle: x and y as fractions of the drawing box, radius of its width. */
         private val SPARKLES = floatArrayOf(

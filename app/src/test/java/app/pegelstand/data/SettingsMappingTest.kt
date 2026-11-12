@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
+import app.pegelstand.domain.BottleMode
 import app.pegelstand.domain.Settings
 import app.pegelstand.domain.WaterColor
 import java.time.Instant
@@ -17,6 +18,7 @@ import org.junit.Test
 /** Mapping of stored DataStore preferences to settings; bad stored data must never crash. */
 class SettingsMappingTest {
     private val waterColor = stringPreferencesKey("waterColor")
+    private val bottleMode = stringPreferencesKey("bottleMode")
 
     @Test
     fun `empty store gives the defaults`() {
@@ -32,6 +34,19 @@ class SettingsMappingTest {
     fun `unknown colour id falls back to blue`() {
         assertEquals(WaterColor.BLUE, SettingsStore.toSettings(preferencesOf(waterColor to "GOLD")).waterColor)
         assertEquals(WaterColor.BLUE, SettingsStore.toSettings(preferencesOf(waterColor to "")).waterColor)
+    }
+
+    @Test
+    fun `stored bottle mode is read back`() {
+        assertEquals(BottleMode.DRAIN, SettingsStore.toSettings(preferencesOf(bottleMode to "DRAIN")).bottleMode)
+        assertEquals(BottleMode.FILL, SettingsStore.toSettings(preferencesOf(bottleMode to "FILL")).bottleMode)
+    }
+
+    @Test
+    fun `missing or unknown bottle mode falls back to fill`() {
+        assertEquals(BottleMode.FILL, SettingsStore.toSettings(emptyPreferences()).bottleMode)
+        assertEquals(BottleMode.FILL, SettingsStore.toSettings(preferencesOf(bottleMode to "EMPTY")).bottleMode)
+        assertEquals(BottleMode.FILL, SettingsStore.toSettings(preferencesOf(bottleMode to "")).bottleMode)
     }
 
     @Test

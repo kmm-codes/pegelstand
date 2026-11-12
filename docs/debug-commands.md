@@ -14,7 +14,7 @@ After every action the widgets are refreshed and the reminder alarm is reschedul
 result (printed by `am broadcast` as `data="…"`) is a one-line status, for example:
 
 ```
-now=2026-11-12 15:00:00 (fixed) day=2026-11-12 yesterday=0 ml total=0 / 2 L (0/2000 ml) tap=250 color=BLUE streak=0/0 reminderDue=true remindersToday=0 nextWakeUp=2026-11-12 15:00:00
+now=2026-11-12 15:00:00 (fixed) day=2026-11-12 yesterday=0 ml total=0 / 2 L (0/2000 ml) tap=250 color=BLUE mode=FILL streak=0/0 reminderDue=true remindersToday=0 nextWakeUp=2026-11-12 15:00:00
 ```
 
 On Git Bash for Windows, prefix commands that contain a `/`-path argument with `MSYS_NO_PATHCONV=1`.
@@ -33,8 +33,8 @@ or a fixed "now" that stands still until it is changed or cleared. It survives a
 | Back to the system clock | `CLEAR_TIME` |
 
 A logical day starts at 04:00, so `SET_TIME --es time 03:50` belongs to yesterday's logical day.
-A widget whose update session is running notices a clock jump within one minute; a session
-started after the jump (for example by the next action) sees it at once.
+Every debug action refreshes the widgets afterwards, so a clock jump shows on the widget at once
+(statically: a day change never animates).
 
 ## Data and settings
 
@@ -45,6 +45,7 @@ started after the jump (for example by the next action) sees it at once.
 | Daily goal (1000–5000, steps of 250) | `SET_GOAL --ei ml 2000` |
 | Amount per tap (50–1000, steps of 50) | `SET_ML_PER_TAP --ei ml 250` |
 | Water colour | `SET_COLOR --es color TURQUOISE` (`BLUE`, `TURQUOISE`, `MINT`, `LAVENDER`, `PINK`, `CORAL`) |
+| Bottle direction | `SET_BOTTLE_MODE --es mode DRAIN` (`FILL`: fills as she drinks, `DRAIN`: starts full and empties) |
 | Clear all data (intakes, day goals, settings, reminder bookkeeping) | `CLEAR_DATA` |
 | Status line only | `STATUS` |
 

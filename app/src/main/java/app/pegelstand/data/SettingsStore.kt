@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import app.pegelstand.domain.BottleMode
 import app.pegelstand.domain.Settings
 import app.pegelstand.domain.SettingsRules
 import app.pegelstand.domain.WaterColor
@@ -27,7 +28,7 @@ data class ReminderBookkeeping(
 /**
  * DataStore-backed settings. Reading never fails on bad stored data: out-of-range values are
  * coerced, an invalid reminder window falls back to the default window, an unknown colour id to
- * [WaterColor.DEFAULT]. Writes are internal to the data layer; the app goes through
+ * [WaterColor.DEFAULT], an unknown bottle mode to [BottleMode.DEFAULT]. Writes are internal to the data layer; the app goes through
  * [WaterRepository] so the side effects (widget refresh, reschedule) are not forgotten.
  */
 class SettingsStore(private val dataStore: DataStore<Preferences>) {
@@ -53,6 +54,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     internal suspend fun setWaterColor(color: WaterColor) {
         dataStore.edit { it[Keys.WATER_COLOR] = color.id }
+    }
+
+    internal suspend fun setBottleMode(mode: BottleMode) {
+        dataStore.edit { it[Keys.BOTTLE_MODE] = mode.id }
     }
 
     internal suspend fun setRemindersEnabled(enabled: Boolean) {
@@ -91,6 +96,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val DAILY_GOAL_ML = intPreferencesKey("dailyGoalMl")
         val ML_PER_TAP = intPreferencesKey("mlPerTap")
         val WATER_COLOR = stringPreferencesKey("waterColor")
+        val BOTTLE_MODE = stringPreferencesKey("bottleMode")
         val REMINDERS_ENABLED = booleanPreferencesKey("remindersEnabled")
         val REMIND_FROM_MIN = intPreferencesKey("remindFrom")
         val REMIND_UNTIL_MIN = intPreferencesKey("remindUntil")
@@ -114,6 +120,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
                 dailyGoalMl = SettingsRules.coerceGoal(prefs[Keys.DAILY_GOAL_ML] ?: SettingsRules.DEFAULT_GOAL_ML),
                 mlPerTap = SettingsRules.coerceMlPerTap(prefs[Keys.ML_PER_TAP] ?: SettingsRules.DEFAULT_ML_PER_TAP),
                 waterColor = WaterColor.fromId(prefs[Keys.WATER_COLOR]),
+                bottleMode = BottleMode.fromId(prefs[Keys.BOTTLE_MODE]),
                 remindersEnabled = prefs[Keys.REMINDERS_ENABLED] ?: true,
                 remindFrom = window.first,
                 remindUntil = window.second,

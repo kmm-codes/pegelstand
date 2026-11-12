@@ -13,7 +13,7 @@ import app.pegelstand.data.db.WaterDatabase
 import app.pegelstand.domain.TimeSource
 import app.pegelstand.reminder.AlarmReminderScheduler
 import app.pegelstand.reminder.NotificationReminderNotifier
-import app.pegelstand.widget.GlanceWidgetRefresher
+import app.pegelstand.widget.WidgetAnimator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,8 +35,11 @@ class AppContainer(context: Context) {
 
     val settingsStore: SettingsStore by lazy { SettingsStore(appContext.settingsDataStore) }
 
+    /** The only sender of widget updates: animates level changes, everything else is static. */
+    val widgetAnimator: WidgetAnimator = WidgetAnimator(appContext, applicationScope) { repository.currentToday() }
+
     // Side effects of writes, called by the repository in this order.
-    val widgetRefresher: WidgetRefresher = GlanceWidgetRefresher(appContext)
+    val widgetRefresher: WidgetRefresher = widgetAnimator
     val reminderNotifier: ReminderNotifier = NotificationReminderNotifier(appContext)
     val reminderScheduler: ReminderScheduler = AlarmReminderScheduler(appContext)
 

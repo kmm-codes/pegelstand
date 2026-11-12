@@ -55,6 +55,19 @@ The colour applies to the water in the widget and in the app, and to the bars/dr
 history that are not gold. The "today" state carries the current `WaterColor`, and changing it
 refreshes the widgets.
 
+**Bottle direction.** `bottleMode` setting: `FILL` (default) or `DRAIN`.
+
+- `FILL`: the bottle starts the day empty and fills with what was drunk; shown level = total / goal.
+- `DRAIN`: the bottle starts the day full, like a real bottle holding the daily goal, and empties
+  as she drinks; shown level = 1 − total / goal. Reaching the goal is an empty bottle in the
+  gold "reached" state.
+
+One pure function `shownFill(totalMl, goalMl, mode)` (clamped to 0..1) is the only place that
+knows the direction; widget and app both use it, so the widget animation falls when she drinks in
+`DRAIN` mode without further logic. Everything else is unaffected: the amount text stays
+"drunk / goal", history, streak and reminders count what was drunk. Changing the mode refreshes
+the widgets statically.
+
 **Undo.** Removes the most recent intake of the current logical day. Nothing happens if there is none.
 
 **Streak.** Number of consecutive days with `total ≥ goal`, ending yesterday, plus today if today
@@ -81,7 +94,7 @@ streak ever.
 
 - Room: `intake(id, timestampMs, day, amountMl)`, `day_goal(day PK, goalMl)`.
   Day totals are `SUM(amountMl) GROUP BY day`. Exposed as `Flow`.
-- DataStore: `dailyGoalMl`, `mlPerTap`, `waterColor`, `remindersEnabled` (default true),
+- DataStore: `dailyGoalMl`, `mlPerTap`, `waterColor`, `bottleMode`, `remindersEnabled` (default true),
   `remindFrom`, `remindUntil`, plus reminder bookkeeping (`lastReminderAtMs`, `remindersSentDay`, `remindersSentCount`).
 - One `WaterRepository` is the only write path. `addIntake()` and `undoLast()` each do, in order:
   write, refresh all widgets, cancel a showing reminder notification, reschedule the next check.
@@ -178,7 +191,8 @@ One scrolling screen plus settings behind a gear icon.
 5. A card "Widget zum Startbildschirm hinzufügen" while no widget is placed.
 
 Settings: Tagesziel, Menge pro Tap, Wasserfarbe (six swatches, the selected one marked, the
-bottle on the Heute screen changes immediately), Erinnerungen an/aus, aktiv von/bis.
+bottle on the Heute screen changes immediately), Flasche (two choices: "füllt sich" / "leert
+sich"), Erinnerungen an/aus, aktiv von/bis.
 
 Same palette as the bottle, light and dark theme, no dynamic color (the bottle is the identity).
 Adaptive launcher icon: a drop or the bottle.

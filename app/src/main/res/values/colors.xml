@@ -8,4 +8,6 @@
     <color name="widget_surface">#FFFFFFFF</color>
     <color name="widget_on_surface">#FF0D47A1</color>
     <color name="widget_chip">#FFFFF1D6</color>
+    <color name="widget_on_chip">#FF7A4A00</color>
+    <color name="widget_gold_text">#FFB86E00</color>
 </resources>

@@ -40,6 +40,11 @@
                 android:resource="@xml/pegel_widget_info" />
         </receiver>
 
+        <!-- Widget taps (add, undo); reached only through the widget's own pending intents. -->
+        <receiver
+            android:name=".widget.WidgetTapReceiver"
+            android:exported="false" />
+
         <receiver
             android:name=".reminder.ReminderAlarmReceiver"
             android:exported="false" />
