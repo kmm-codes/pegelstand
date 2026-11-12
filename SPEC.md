@@ -16,7 +16,7 @@ days, no Wear OS, no multi-language. Do not add features that are not in this fi
   where verification screenshots go) are in `LOCAL.md` next to this file. It is not tracked in
   git. Read it before the first Gradle or adb call; its emulator rules are hard rules.
 - Build with JDK 21.
-- Kotlin, Jetpack Compose (Material 3), Jetpack Glance for the widget, Room (KSP) for storage,
+- Kotlin, Jetpack Compose (Material 3), classic RemoteViews for the widget, Room (KSP) for storage,
   DataStore Preferences for settings. Stable releases only, no alpha/beta/rc. The versions in use
   are in the version catalog `gradle/libs.versions.toml`.
 - compileSdk/targetSdk 36, minSdk 26. Single module `app`. No DI framework: one hand-written
@@ -95,7 +95,11 @@ reminder if `isReminderDue`, schedule the next one. Reschedule also on boot, app
 time/time-zone change, and settings change. Reason for alarms instead of WorkManager: the app is
 rarely opened, and background jobs of rarely opened apps are deferred for hours.
 
-## Widget (Glance)
+## Widget (classic RemoteViews, no Glance)
+
+The widget is a plain `AppWidgetProvider` with XML layouts. Glance was dropped because it cannot
+deliver animation frames (it publishes at most a few uneven updates per second and wraps the
+layout per size, so frames pushed beside it are ignored).
 
 - Default 2×2, resizable both ways. Must look right at 2×2, 2×3, 3×2 and 4×2: bottle scaled to
   the available height, no clipped or ellipsized text.
@@ -108,11 +112,35 @@ rarely opened, and background jobs of rarely opened apps are deferred for hours.
   where the size allows it.
 - A widget tap gives a short vibration tick as confirmation (`VIBRATE` permission).
 - The bottle is drawn with `android.graphics.Canvas` into a bitmap sized from the widget's actual
-  size (longest side capped at 600 px) and shown as a Glance `Image`. The fill level changes in
-  one step per tap; no frame animation in the widget.
-- System widget corner radius and `appWidgetBackground()` on Android 12+. Light and dark variants.
+  size and shown in an `ImageView`.
+- System widget corner radius and `@android:id/background` on Android 12+. Light and dark variants.
+- **The level animates on change** (see "Widget animation").
 - The app can ask the launcher to pin the widget (`AppWidgetManager.requestPinAppWidget`).
 - A sensible `previewLayout`/preview image for the widget picker.
+
+## Widget animation
+
+When today's level changes (tap, undo, notification action, a change made in the app), the bottle
+in the widget animates from the level it currently shows to the new one: about 500 ms, eased,
+rising or falling. Reaching the goal blends to gold during the rise. Only on change; nothing
+moves while idle.
+
+- **One update, launcher-timed frames.** The app renders the frames (old level → new level) and
+  sends them in a single full `updateAppWidget`: a freshly added `ViewFlipper`
+  (`autoStart`, `flipInterval` 33 ms) whose child `ImageView`s carry the frames. The launcher
+  plays them by itself. The last frames are identical to the final state (a hold, sharing one
+  `Bitmap` instance), and a second full update inside that hold removes the flipper and shows
+  the static final image. Removing the flipper from the layout is what stops it; hiding it does not.
+- **Never a wrong end state.** The closing update re-reads the real state and is authoritative.
+  It is sent even if the animation is cancelled. Rapid taps retarget: the next animation starts
+  from the level visible at that moment, and only the newest animation may send its closing update.
+- **Bitmap budget.** All frames of one update must stay well under the RemoteViews bitmap cap
+  (6 × display width × height bytes); frame size and count are derived from the real display
+  size. If the cap is hit anyway, fall back to a static update at once.
+- Size changes, day rollover, colour or goal changes and theme switches update statically.
+- The static image keeps the light/dark pair; animation frames use the current mode only.
+- Fallback, only if device measurement shows the flipper is not smooth enough: push the same
+  frames as separate full updates, picked by elapsed time (late frames dropped, not delayed).
 
 ## Bottle (shared visual)
 

@@ -39,7 +39,7 @@ data class WidgetLayout(
 
         /**
          * @param aspect width / height of the bottle drawing.
-         * @param amountText the text that must fit on one line, e.g. "1,25 / 2 l".
+         * @param amountText the text that must fit on one line, e.g. "1,25 / 2 L".
          */
         fun compute(widthDp: Float, heightDp: Float, aspect: Float, amountText: String): WidgetLayout {
             val w = max(widthDp, 40f)

@@ -10,13 +10,13 @@ class WidgetLayoutTest {
 
     // Typical phone launcher cell sizes (dp): 2x2, 2x3, 3x2, 4x2.
     private val sizes = listOf(170f to 180f, 170f to 280f, 260f to 180f, 350f to 180f, 110f to 110f)
-    private val longest = "10,25 / 5 l"
+    private val longest = "10,25 / 5 L"
 
     @Test
     fun `wide widgets put the bottle beside the text`() {
-        assertFalse(WidgetLayout.compute(170f, 180f, aspect, "0 / 2 l").sideBySide)
-        assertFalse(WidgetLayout.compute(170f, 280f, aspect, "0 / 2 l").sideBySide)
-        assertTrue(WidgetLayout.compute(350f, 180f, aspect, "0 / 2 l").sideBySide)
+        assertFalse(WidgetLayout.compute(170f, 180f, aspect, "0 / 2 L").sideBySide)
+        assertFalse(WidgetLayout.compute(170f, 280f, aspect, "0 / 2 L").sideBySide)
+        assertTrue(WidgetLayout.compute(350f, 180f, aspect, "0 / 2 L").sideBySide)
     }
 
     @Test
@@ -58,6 +58,6 @@ class WidgetLayoutTest {
 
     @Test
     fun `text estimate is wider for longer amounts`() {
-        assertTrue(WidgetLayout.estimateWidthEm("10,25 / 5 l") > WidgetLayout.estimateWidthEm("0 / 2 l"))
+        assertTrue(WidgetLayout.estimateWidthEm("10,25 / 5 L") > WidgetLayout.estimateWidthEm("0 / 2 L"))
     }
 }

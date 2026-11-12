@@ -11,6 +11,11 @@ object AmountFormat {
         return value.toPlainString().replace('.', ',')
     }
 
-    /** Widget/app amount line: `1,25 / 2 l`. */
-    fun totalOfGoal(totalMl: Int, goalMl: Int): String = "${liters(totalMl)} / ${liters(goalMl)} l"
+    /** An amount with its unit: 1750 -> `1,75 L`. Capital L: in a bold font a lower-case l reads as a bar. */
+    fun litersWithUnit(ml: Int): String = "${liters(ml)} $UNIT"
+
+    /** Widget/app amount line: `1,25 / 2 L`. */
+    fun totalOfGoal(totalMl: Int, goalMl: Int): String = "${liters(totalMl)} / ${litersWithUnit(goalMl)}"
+
+    const val UNIT = "L"
 }

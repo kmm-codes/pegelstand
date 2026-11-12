@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Glass tint from the bottle palette (dark). -->
-    <color name="window_background">#FF1C2A35</color>
+    <!-- App background (dark). -->
+    <color name="window_background">#FF0C141A</color>
 
     <!-- Widget, mirroring PegelColors.Dark. -->
     <color name="widget_surface">#FF10181F</color>

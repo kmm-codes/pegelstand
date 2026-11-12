@@ -36,6 +36,9 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
 
     val bookkeeping: Flow<ReminderBookkeeping> = dataStore.data.map(::toBookkeeping)
 
+    /** The logical day whose goal celebration the app has already played, or null. */
+    val celebratedDay: Flow<LocalDate?> = dataStore.data.map { prefs -> prefs[Keys.CELEBRATED_DAY]?.let(LocalDate::ofEpochDay) }
+
     suspend fun current(): Settings = settings.first()
 
     suspend fun currentBookkeeping(): ReminderBookkeeping = bookkeeping.first()
@@ -64,6 +67,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    internal suspend fun setCelebratedDay(day: LocalDate) {
+        dataStore.edit { it[Keys.CELEBRATED_DAY] = day.toEpochDay() }
+    }
+
     /** Records one sent reminder: count restarts at 1 on a new logical day. */
     internal suspend fun recordReminderSent(at: Instant, day: LocalDate) {
         dataStore.edit {
@@ -90,6 +97,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val LAST_REMINDER_AT_MS = longPreferencesKey("lastReminderAtMs")
         val REMINDERS_SENT_DAY = longPreferencesKey("remindersSentDay")
         val REMINDERS_SENT_COUNT = intPreferencesKey("remindersSentCount")
+        val CELEBRATED_DAY = longPreferencesKey("celebratedDay")
     }
 
     companion object {

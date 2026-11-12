@@ -181,6 +181,17 @@ class WaterRepository(
         afterSettingsWrite(time.now(), affectsWidget = false)
     }
 
+    /**
+     * The logical day whose "goal reached" celebration the app has played. Persisted so the
+     * celebration plays at most once per day, across app restarts and widget intakes. App UI
+     * state only: no widget refresh or reschedule follows.
+     */
+    val celebratedDay: Flow<LocalDate?> = settingsStore.celebratedDay
+
+    suspend fun markCelebrated(day: LocalDate) = withContext(NonCancellable) {
+        settingsStore.setCelebratedDay(day)
+    }
+
     /** Snapshot of everything [isReminderDue] / [app.pegelstand.domain.nextCheckTime] need at [now]. */
     suspend fun reminderState(now: Instant = time.now()): ReminderState {
         val zone = time.zone()

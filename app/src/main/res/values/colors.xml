@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Glass tint from the bottle palette (light). -->
-    <color name="window_background">#FFE8F4FB</color>
+    <!-- App background (light); the launcher icon keeps the glass tint. -->
+    <color name="window_background">#FFF6FAFD</color>
     <color name="ic_launcher_background">#FFE8F4FB</color>
 
     <!-- Widget, mirroring PegelColors.Light (resources are needed for drawables and the preview). -->

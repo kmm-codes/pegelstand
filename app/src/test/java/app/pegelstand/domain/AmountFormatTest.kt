@@ -24,8 +24,14 @@ class AmountFormatTest {
 
     @Test
     fun `total of goal line`() {
-        assertEquals("1,25 / 2 l", AmountFormat.totalOfGoal(1250, 2000))
-        assertEquals("0 / 2 l", AmountFormat.totalOfGoal(0, 2000))
-        assertEquals("2,5 / 2,25 l", AmountFormat.totalOfGoal(2500, 2250))
+        assertEquals("1,25 / 2 L", AmountFormat.totalOfGoal(1250, 2000))
+        assertEquals("0 / 2 L", AmountFormat.totalOfGoal(0, 2000))
+        assertEquals("2,5 / 2,25 L", AmountFormat.totalOfGoal(2500, 2250))
+    }
+
+    @Test
+    fun `amount with capital L unit`() {
+        assertEquals("1,75 L", AmountFormat.litersWithUnit(1750))
+        assertEquals("0 L", AmountFormat.litersWithUnit(0))
     }
 }
