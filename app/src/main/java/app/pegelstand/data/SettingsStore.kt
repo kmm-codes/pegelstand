@@ -75,6 +75,11 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    /** Back to defaults: removes every setting and the reminder bookkeeping (debug tooling). */
+    internal suspend fun clearAll() {
+        dataStore.edit { it.clear() }
+    }
+
     private object Keys {
         val DAILY_GOAL_ML = intPreferencesKey("dailyGoalMl")
         val ML_PER_TAP = intPreferencesKey("mlPerTap")

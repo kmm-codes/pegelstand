@@ -99,7 +99,8 @@ rarely opened, and background jobs of rarely opened apps are deferred for hours.
 
 - Default 2×2, resizable both ways. Must look right at 2×2, 2×3, 3×2 and 4×2: bottle scaled to
   the available height, no clipped or ellipsized text.
-- Content: the bottle; below it the amount as `1,25 / 2 l` (German decimal comma, at most two
+- Content: the bottle; below it the amount as `1,25 / 2 L` (capital L: in the bold widget font a
+  lower-case l reads as a vertical bar; German decimal comma, at most two
   decimals, trailing zeros dropped); a streak chip `🔥 6` when streak ≥ 1; a small undo icon,
   shown only when today has an intake.
 - Tap anywhere on the widget except the two controls below = `addIntake()`.

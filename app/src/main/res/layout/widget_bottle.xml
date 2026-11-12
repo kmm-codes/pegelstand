@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The bottle bitmap inside the Glance widget (AndroidRemoteViews, so it can carry a light and a
+     dark bitmap). Not clickable: taps fall through to the widget's "add intake" action. -->
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_bottle"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:scaleType="fitCenter"
+    android:contentDescription="@string/widget_bottle"
+    android:importantForAccessibility="yes" />

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget picker preview before Android 12 (no previewLayout there): surface plus the bottle. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/widget_background" />
+    <item
+        android:bottom="16dp"
+        android:left="16dp"
+        android:right="16dp"
+        android:top="16dp">
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/widget_preview_bottle" />
+    </item>
+</layer-list>

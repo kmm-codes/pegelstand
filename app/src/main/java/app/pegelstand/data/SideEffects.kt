@@ -3,8 +3,8 @@ package app.pegelstand.data
 import app.pegelstand.domain.ReminderState
 import java.time.Instant
 
-// Side effects of a write, called by WaterRepository only. AppContainer wires the no-op
-// implementations below until the widget and reminder implementations replace them there.
+// Side effects of a write, called by WaterRepository only. The implementations (widget,
+// AlarmManager, notification) are wired in AppContainer; they must not throw.
 
 /** Re-renders every placed home-screen widget from the current data. */
 fun interface WidgetRefresher {
@@ -25,18 +25,4 @@ interface ReminderNotifier {
     fun show(glassesBehind: Int, mlPerTap: Int)
 
     fun cancel()
-}
-
-object NoOpWidgetRefresher : WidgetRefresher {
-    override suspend fun refreshAll() = Unit
-}
-
-object NoOpReminderScheduler : ReminderScheduler {
-    override fun schedule(state: ReminderState, now: Instant) = Unit
-}
-
-object NoOpReminderNotifier : ReminderNotifier {
-    override fun show(glassesBehind: Int, mlPerTap: Int) = Unit
-
-    override fun cancel() = Unit
 }

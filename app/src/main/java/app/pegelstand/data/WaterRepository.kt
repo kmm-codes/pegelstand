@@ -24,11 +24,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 
 /** Everything the widget and the "Heute" section show, for the current logical day. */
@@ -62,19 +64,34 @@ class WaterRepository(
 
     val settings: Flow<Settings> = settingsStore.settings
 
+    /** Bumped by [recheckClock]; restarts the day evaluation of every collector at once. */
+    private val clockGeneration = MutableStateFlow(0L)
+
     /**
-     * The current logical day. Re-evaluated at the next 04:00 boundary and at least once a minute
-     * (so a clock or time-zone change is picked up while collected); emits only on change.
+     * The current logical day. Re-evaluated at the next 04:00 boundary, at least once a minute,
+     * and immediately on [recheckClock] (so a clock or time-zone change is picked up while
+     * collected); emits only on change.
      */
-    val currentDay: Flow<LocalDate> = flow {
-        while (true) {
-            val now = time.now()
-            val zone = time.zone()
-            emit(logicalDay(now, zone))
-            val untilBoundaryMs = Duration.between(now, LogicalDay.nextStart(now, zone)).toMillis() + 1
-            delay(minOf(untilBoundaryMs, DAY_POLL_MS))
+    val currentDay: Flow<LocalDate> = clockGeneration.flatMapLatest {
+        flow {
+            while (true) {
+                val now = time.now()
+                val zone = time.zone()
+                emit(logicalDay(now, zone))
+                val untilBoundaryMs = Duration.between(now, LogicalDay.nextStart(now, zone)).toMillis() + 1
+                delay(minOf(untilBoundaryMs, DAY_POLL_MS))
+            }
         }
     }.distinctUntilChanged()
+
+    /**
+     * Makes every collector of [currentDay] / [today] re-read the clock now instead of at its next
+     * poll. Called by the alarm check and the reschedule path (time or time-zone change), so a
+     * widget whose update session is still running does not render the previous day.
+     */
+    fun recheckClock() {
+        clockGeneration.update { it + 1 }
+    }
 
     /** Today's state; follows intakes, settings and the day rollover. */
     val today: Flow<TodayState> = currentDay.flatMapLatest { day ->
@@ -186,6 +203,7 @@ class WaterRepository(
 
     /** For boot, app update and time/time-zone change: replace the pending alarm. */
     suspend fun rescheduleReminders() = withContext(NonCancellable) {
+        recheckClock()
         val now = time.now()
         scheduler.schedule(reminderState(now), now)
     }
@@ -197,6 +215,7 @@ class WaterRepository(
      */
     suspend fun runReminderCheck() = withContext(NonCancellable) {
         val now = time.now()
+        recheckClock()
         widgets.refreshAll()
         val state = reminderState(now)
         if (isReminderDue(state, now)) {

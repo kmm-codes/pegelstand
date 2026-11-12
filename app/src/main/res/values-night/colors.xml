@@ -2,4 +2,9 @@
 <resources>
     <!-- Glass tint from the bottle palette (dark). -->
     <color name="window_background">#FF1C2A35</color>
+
+    <!-- Widget, mirroring PegelColors.Dark. -->
+    <color name="widget_surface">#FF10181F</color>
+    <color name="widget_on_surface">#FFE1F5FE</color>
+    <color name="widget_chip">#FF3A2C12</color>
 </resources>

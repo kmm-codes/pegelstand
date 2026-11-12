@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
@@ -26,11 +27,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pegelstand.data.TodayState
 import app.pegelstand.domain.AmountFormat
+import app.pegelstand.widget.WidgetPinning
 import kotlinx.coroutines.launch
 
 /**
- * Minimal storage check: today's total as text and one button that calls addIntake().
- * Replaced by the real app UI in a later phase.
+ * Minimal storage check: today's total as text and one button that calls addIntake(), plus a
+ * temporary "pin widget" button for testing the widget. Replaced by the real app UI in a later phase.
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +44,11 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val today by repository.today.collectAsStateWithLifecycle(initialValue = null)
                     val scope = rememberCoroutineScope()
-                    TodayPlaceholder(today = today, onAdd = { scope.launch { repository.addIntake() } })
+                    TodayPlaceholder(
+                        today = today,
+                        onAdd = { scope.launch { repository.addIntake() } },
+                        onPinWidget = { WidgetPinning.requestPin(this@MainActivity) },
+                    )
                 }
             }
         }
@@ -50,7 +56,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun TodayPlaceholder(today: TodayState?, onAdd: () -> Unit) {
+private fun TodayPlaceholder(today: TodayState?, onAdd: () -> Unit, onPinWidget: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
@@ -63,6 +69,9 @@ private fun TodayPlaceholder(today: TodayState?, onAdd: () -> Unit) {
         )
         Button(onClick = onAdd) {
             Text(text = stringResource(R.string.add_intake, today.mlPerTap))
+        }
+        OutlinedButton(onClick = onPinWidget) {
+            Text(text = "Widget anheften (Test)")
         }
     }
 }
