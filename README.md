@@ -20,6 +20,11 @@ Der genaue Umfang steht in [SPEC.md](SPEC.md), Testbefehle für Debug-Builds in
 - Debug-APK bauen: `./gradlew :app:assembleDebug` (Windows: `gradlew.bat :app:assembleDebug`).
 - Ergebnis: `app/build/outputs/apk/debug/app-debug.apk`.
 - Tests: `./gradlew :app:testDebugUnitTest`.
+- APK zum Weitergeben: `./gradlew :app:assembleRelease`, Ergebnis
+  `app/build/outputs/apk/release/app-release.apk`. Signiert wird sie nur, wenn im Projektordner
+  eine `keystore.properties` liegt (nicht im Repo) mit `storeFile`, `storePassword`, `keyAlias`
+  und `keyPassword`. Ohne die Datei entsteht eine unsignierte APK, die sich nicht installieren
+  lässt.
 
 ## Installieren
 
@@ -28,8 +33,9 @@ Der genaue Umfang steht in [SPEC.md](SPEC.md), Testbefehle für Debug-Builds in
 - Ohne Kabel: APK aufs Handy schicken, antippen und „Unbekannte Apps installieren“ für die
   jeweilige App (Dateimanager, Messenger) erlauben.
 - Updates lassen sich nur über eine frühere Version installieren, wenn sie mit demselben
-  Schlüssel signiert sind, also vom selben Rechner gebaut wurden. Sonst vorher deinstallieren;
-  dabei gehen die Daten verloren.
+  Schlüssel signiert sind. Debug-Builds tragen den Debug-Schlüssel des jeweiligen Rechners,
+  die Release-APK den Schlüssel aus `keystore.properties`; ein Wechsel zwischen beiden geht nur
+  über Deinstallieren, und dabei gehen die Daten verloren. Den Release-Schlüssel sichern.
 
 ## Widget hinzufügen
 

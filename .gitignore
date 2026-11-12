@@ -9,3 +9,5 @@ captures/
 .externalNativeBuild/
 .cxx/
 /LOCAL.md
+/keystore.properties
+/dist/

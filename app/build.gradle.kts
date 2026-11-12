@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -20,8 +21,25 @@ android {
         versionName = "1.0"
     }
 
+    // Release signing is optional: with a `keystore.properties` in the project root (not tracked;
+    // keys storeFile, storePassword, keyAlias, keyPassword) the release APK is signed, without it
+    // the build still works and produces an unsigned APK.
+    val keystoreFile = rootProject.file("keystore.properties")
+    val keystore = Properties().apply { if (keystoreFile.isFile) keystoreFile.inputStream().use(::load) }
+    if (keystoreFile.isFile) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystore.getProperty("storeFile"))
+                storePassword = keystore.getProperty("storePassword")
+                keyAlias = keystore.getProperty("keyAlias")
+                keyPassword = keystore.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (keystoreFile.isFile) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
