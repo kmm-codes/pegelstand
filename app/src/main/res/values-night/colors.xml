@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Glass tint from the bottle palette (dark). -->
+    <color name="window_background">#FF1C2A35</color>
+</resources>

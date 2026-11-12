@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Glass tint from the bottle palette (light). -->
+    <color name="window_background">#FFE8F4FB</color>
+    <color name="ic_launcher_background">#FFE8F4FB</color>
+</resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pegelstand</string>
+
+    <!-- %1$s is the amount line, e.g. "1,25 / 2 l" -->
+    <string name="today_total">Heute: %1$s</string>
+    <!-- %1$d is the tap size in ml -->
+    <string name="add_intake">+%1$d ml</string>
+
+    <string name="water_color_blue">Wasserblau</string>
+    <string name="water_color_turquoise">Türkis</string>
+    <string name="water_color_mint">Minze</string>
+    <string name="water_color_lavender">Lavendel</string>
+    <string name="water_color_pink">Rosa</string>
+    <string name="water_color_coral">Koralle</string>
+</resources>
