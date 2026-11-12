@@ -34,6 +34,8 @@ Der genaue Umfang steht in [SPEC.md](SPEC.md), Testbefehle für Debug-Builds in
 
 ## Installieren
 
+- Fertige APK: unter [Releases](https://github.com/kmm-codes/pegelstand/releases/latest)
+  herunterladen, auf dem Handy antippen. Selbst bauen ist dafür nicht nötig.
 - Gerät: Android 8.0 oder neuer.
 - Per USB: USB-Debugging einschalten, dann `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
 - Ohne Kabel: APK aufs Handy schicken, antippen und „Unbekannte Apps installieren“ für die
