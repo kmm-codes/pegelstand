@@ -59,7 +59,7 @@
                     android:layout_height="48dp"
                     android:gravity="center"
                     android:maxLines="1"
-                    android:paddingHorizontal="8dp"
+                    android:paddingHorizontal="4dp"
                     android:textColor="@color/widget_on_surface"
                     android:textSize="20sp"
                     android:textStyle="bold" />

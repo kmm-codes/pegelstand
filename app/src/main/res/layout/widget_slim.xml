@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Narrow widgets (one column, two or more rows): the bottle as wide as the widget, below it the
+     amount in two lines (drunk large, "/ goal" small and muted), the undo control at the bottom.
+     Sizes are set per widget size from WidgetLayout on Android 12+; the XML values are the
+     fallback before that (bottle in the space the text and the undo row leave). Tap zones: only
+     the bottle's box (widget_frames) adds an intake; the root, out to the widget edges, opens the
+     app; undo undoes. The root has no padding; widget_content carries it. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+
+    <LinearLayout
+        android:id="@+id/widget_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="6dp">
+
+        <!-- Bottle image and flipper container share one size (set per widget size on Android 12+),
+             so the last animation frame lands exactly on the static image. The container is the
+             add-intake zone; it is always visible, also while the image is hidden. -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/widget_bottle"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:contentDescription="@string/widget_bottle"
+                android:scaleType="fitCenter" />
+
+            <!-- Holds the level animation's flipper while a change plays, else the idle wave's. -->
+            <FrameLayout
+                android:id="@+id/widget_frames"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center" />
+        </FrameLayout>
+
+        <!-- Read once as a whole (its description is the one-line amount); taps fall through to the root. -->
+        <LinearLayout
+            android:id="@+id/widget_amount_box"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_amount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:maxLines="1"
+                android:textColor="@color/widget_on_surface"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_amount_goal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:maxLines="1"
+                android:textColor="@color/widget_on_surface_muted"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/widget_undo"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/widget_undo_description">
+
+            <ImageView
+                android:id="@+id/widget_undo_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_undo"
+                android:tint="@color/widget_on_surface" />
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>

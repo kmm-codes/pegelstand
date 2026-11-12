@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The smallest widget (one cell): the bottle alone, the drunk amount on a small label on its
+     body. Sizes and the label's position are set per widget size from WidgetLayout on Android 12+;
+     before that the bottle fills the content area and the label sits a little below its centre.
+     Tap zones: only the bottle's box (widget_frames) adds an intake, also under the label, which
+     takes no taps; the root, out to the widget edges, opens the app. No undo, no streak chip. The
+     root has no padding; widget_content carries it. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background">
+
+    <FrameLayout
+        android:id="@+id/widget_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="6dp">
+
+        <!-- Bottle image and flipper container share one box, so the last animation frame lands
+             exactly on the static image. -->
+        <FrameLayout
+            android:id="@+id/widget_bottle_box"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center">
+
+            <ImageView
+                android:id="@+id/widget_bottle"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/widget_bottle"
+                android:scaleType="fitCenter" />
+
+            <!-- The add-intake zone, always visible. Holds the level animation's flipper while a
+                 change plays, else the idle wave's. -->
+            <FrameLayout
+                android:id="@+id/widget_frames"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </FrameLayout>
+
+        <!-- The label, centred like the box and moved down onto the glass. Drawn after the box, so it
+             stays readable above the flippers; not clickable, so a tap on it reaches the add-intake
+             zone underneath. -->
+        <TextView
+            android:id="@+id/widget_amount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/widget_label"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="1dp"
+            android:textColor="@color/widget_on_surface"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+</FrameLayout>

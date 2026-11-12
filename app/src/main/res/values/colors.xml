@@ -10,4 +10,8 @@
     <color name="widget_chip">#FFFFF1D6</color>
     <color name="widget_on_chip">#FF7A4A00</color>
     <color name="widget_gold_text">#FFB86E00</color>
+    <!-- Second line of the narrow widget ("/ 2 L"). -->
+    <color name="widget_on_surface_muted">#FF4E6E9E</color>
+    <!-- Mini widget's amount label: the surface, slightly translucent. -->
+    <color name="widget_label">#E6FFFFFF</color>
 </resources>

@@ -34,3 +34,7 @@ Der genaue Umfang steht in [SPEC.md](SPEC.md), Testbefehle für Debug-Builds in
 ## Widget hinzufügen
 
 - Startbildschirm lange drücken, „Widgets“ wählen, „Pegelstand“ suchen und platzieren.
+- Größe ändern: Widget lange drücken und an den Griffen ziehen. Es geht von 1×1 (nur die Flasche
+  mit der Menge darauf) über 1×2 (schmal) bis 4×2.
+- Bedienung: Tipp auf die Flasche zählt, alles andere im Widget öffnet die App, der Pfeil macht
+  den letzten Tipp rückgängig.

@@ -215,9 +215,10 @@ class WidgetAnimator(
                 Log.w(LOG_TAG, "Widget $id: static update with idle wave rejected, without it", e)
                 manager.updateAppWidget(id, views.still(id, state, key.sizes, idle = null))
             }
+            val sizes = update.key.sizes.joinToString(",") { "${it.width.roundToInt()}x${it.height.roundToInt()}" }
             Log.d(
                 LOG_TAG,
-                "widget static id=$id idle=${update.idleFrames} frame=${update.frameSize} sizes=${update.key.sizes.size} " +
+                "widget static id=$id idle=${update.idleFrames} frame=${update.frameSize} sizes=$sizes " +
                     "bytes=${update.bytes} (still ${update.stillBytes}) build=${update.buildMs}ms " +
                     "prepared=${update === prepared}",
             )

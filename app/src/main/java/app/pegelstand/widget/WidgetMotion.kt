@@ -51,7 +51,7 @@ sealed interface WidgetChange {
  * Timing model: the start update carries a flipper with [CHILDREN] images that the launcher shows
  * one after another, [TICK_MS] apart, beginning with child 0 when the flipper is attached. The
  * first [MOTION_CHILDREN] children are the motion (the last of them is the final look), the rest
- * repeat the final look as a hold. The closing update, [STOP_SLACK_MS] after the motion, lands in
+ * repeat the final look as a hold. The closing update, sent as the motion ends, lands in
  * that hold, replaces the flipper by the static image (and the idle loop, see [WidgetIdle]) and so
  * stops it before it would wrap around.
  */
@@ -73,8 +73,13 @@ object WidgetMotion {
     /** The motion's length: about half a second. */
     const val DURATION_MS = MOTION_CHILDREN * TICK_MS
 
-    /** How long after the motion the closing update is sent; well inside the hold. */
-    const val STOP_SLACK_MS = 150L
+    /**
+     * How long after the motion's end the closing update is sent, counted like the motion from the
+     * start update's send. Zero: the closing update is large and the launcher shows it only some
+     * time after it is sent, so it lands early in the hold, after the last motion frame; any wait
+     * on top only lengthens the still moment between the motion and the idle wave.
+     */
+    const val STOP_SLACK_MS = 0L
 
     /** Share of the launcher's bitmap cap that one update may use. */
     const val BUDGET_SHARE = 0.6

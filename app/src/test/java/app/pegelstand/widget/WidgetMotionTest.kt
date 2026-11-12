@@ -165,7 +165,8 @@ class WidgetMotionTest {
     @Test
     fun `closing update lands inside the hold`() {
         val stop = WidgetMotion.stopDelayMs()
-        assertTrue(stop > WidgetMotion.DURATION_MS)
+        // Never before the motion has ended (the closing update would cut it short).
+        assertTrue(stop >= WidgetMotion.DURATION_MS)
         // The closing update carries the idle wave and was measured to take up to ~400 ms to show
         // in the launcher: the hold leaves at least twice that after the closing update is sent.
         assertTrue(WidgetMotion.CHILDREN * WidgetMotion.TICK_MS - stop >= 800)

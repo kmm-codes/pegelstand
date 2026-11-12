@@ -30,6 +30,12 @@ class AmountFormatTest {
     }
 
     @Test
+    fun `goal part on its own`() {
+        assertEquals("/ 2 L", AmountFormat.ofGoal(2000))
+        assertEquals("/ 2,25 L", AmountFormat.ofGoal(2250))
+    }
+
+    @Test
     fun `amount with capital L unit`() {
         assertEquals("1,75 L", AmountFormat.litersWithUnit(1750))
         assertEquals("0 L", AmountFormat.litersWithUnit(0))

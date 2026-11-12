@@ -15,7 +15,10 @@ object AmountFormat {
     fun litersWithUnit(ml: Int): String = "${liters(ml)} $UNIT"
 
     /** Widget/app amount line: `1,25 / 2 L`. */
-    fun totalOfGoal(totalMl: Int, goalMl: Int): String = "${liters(totalMl)} / ${litersWithUnit(goalMl)}"
+    fun totalOfGoal(totalMl: Int, goalMl: Int): String = "${liters(totalMl)} ${ofGoal(goalMl)}"
+
+    /** The goal part of the amount line on its own: `/ 2 L` (the narrow widget's second line). */
+    fun ofGoal(goalMl: Int): String = "/ ${litersWithUnit(goalMl)}"
 
     const val UNIT = "L"
 }

@@ -18,7 +18,6 @@ import androidx.core.os.BundleCompat
 import app.pegelstand.MainActivity
 import app.pegelstand.R
 import app.pegelstand.data.TodayState
-import app.pegelstand.domain.AmountFormat
 import app.pegelstand.ui.bottle.BottleRenderer
 import app.pegelstand.ui.bottle.PegelColors
 import kotlin.math.max
@@ -41,8 +40,12 @@ internal data class PixelSize(val width: Int, val height: Int) {
 
 /**
  * Builds the widget's RemoteViews: one entry per reported widget size (a size map on Android 12+,
- * a portrait/landscape pair before), each from [R.layout.widget_stacked] or [R.layout.widget_side]
- * as [WidgetLayout] decides. Every update is a full one; nothing here sends anything.
+ * a portrait/landscape pair before), each from the layout of the [WidgetShape] that
+ * [WidgetLayout] picks for that size. Every update is a full one; nothing here sends anything.
+ *
+ * Before Android 12 view sizes cannot be set from code: the shape, texts, font sizes, padding and
+ * visibility still follow the reported size, while the views take their XML sizes (bottle in the
+ * space the other views leave, mini label a little below the bottle's centre).
  */
 internal class WidgetViews(context: Context) {
     private val context: Context = context.applicationContext
@@ -73,7 +76,7 @@ internal class WidgetViews(context: Context) {
 
     /** The layout of one size: shared by the RemoteViews and by the bitmap size. */
     fun layout(state: TodayState, size: SizeDp): WidgetLayout =
-        WidgetLayout.compute(size.width, size.height, BottleRenderer.ASPECT, amountText(state))
+        WidgetLayout.compute(size.width, size.height, BottleRenderer.ASPECT, texts(state))
 
     /** Pixel size of the bottle bitmap for [layout]; the longest side is capped at [MAX_BITMAP_PX]. */
     fun bottlePixels(layout: WidgetLayout): PixelSize {
@@ -127,15 +130,19 @@ internal class WidgetViews(context: Context) {
 
     private fun entry(id: Int, state: TodayState, size: SizeDp, bottle: Bottle): RemoteViews {
         val layout = layout(state, size)
-        val stacked = !layout.sideBySide
-        val views = RemoteViews(context.packageName, if (stacked) R.layout.widget_stacked else R.layout.widget_side)
+        val texts = texts(state)
+        val shape = layout.shape
+        val views = RemoteViews(context.packageName, layoutOf(shape))
         val modern = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
         val density = context.resources.displayMetrics.density
         val fontScale = max(context.resources.configuration.fontScale, 1f)
+        val dip = TypedValue.COMPLEX_UNIT_DIP
+        fun textSize(viewId: Int, dp: Float) = views.setTextViewTextSize(viewId, TypedValue.COMPLEX_UNIT_SP, dp / fontScale)
 
         // Tap zones: only the bottle's box (the frames container: always visible, the bottle
         // image's size, flippers inside it take no taps) adds an intake; the root, that is every
-        // other spot out to the widget's edges, opens the app; chip box and undo lie on top.
+        // other spot out to the widget's edges, opens the app; chip box and undo lie on top. The
+        // mini label lies on top too but takes no taps, so a tap on it drinks.
         val padding = (layout.padding * density).roundToInt()
         views.setViewPadding(R.id.widget_content, padding, padding, padding, padding)
         if (modern) views.setBoolean(ROOT, "setClipToOutline", true)
@@ -144,57 +151,88 @@ internal class WidgetViews(context: Context) {
         views.setOnClickPendingIntent(R.id.widget_frames, tapIntent(WidgetTapReceiver.ACTION_ADD, id))
         views.setContentDescription(R.id.widget_frames, context.getString(R.string.widget_add_description, state.mlPerTap))
 
-        // Amount: "drunk / goal"; taps on it fall through to the root.
-        views.setTextViewText(R.id.widget_amount, amountText(state))
-        views.setTextViewTextSize(R.id.widget_amount, TypedValue.COMPLEX_UNIT_SP, layout.amountFontSize / fontScale)
+        // Amount: "drunk / goal" in one line; slim: the drunk amount (the goal line follows below);
+        // mini: the drunk amount with unit, on the label. Taps on it fall through.
+        val amount = when (shape) {
+            WidgetShape.SLIM -> texts.drunk
+            WidgetShape.MINI -> texts.label
+            WidgetShape.STACKED, WidgetShape.SIDE -> texts.line
+        }
+        views.setTextViewText(R.id.widget_amount, amount)
+        views.setViewVisibility(R.id.widget_amount, if (layout.amountShown) View.VISIBLE else View.GONE)
+        if (layout.amountShown) textSize(R.id.widget_amount, layout.amountFontSize)
         if (modern) {
             val color = if (state.goalReached) R.color.widget_gold_text else R.color.widget_on_surface
             views.setColorStateList(R.id.widget_amount, "setTextColor", color)
-            views.setViewLayoutHeight(R.id.widget_amount, layout.amountRowHeight, TypedValue.COMPLEX_UNIT_DIP)
+            if (shape != WidgetShape.MINI) views.setViewLayoutHeight(R.id.widget_amount, layout.amountRowHeight, dip)
         } else {
             val palette = PegelColors.of(isNight())
             views.setTextColor(R.id.widget_amount, if (state.goalReached) palette.goldText else palette.onSurface)
         }
 
-        // Streak chip, only from a streak of one day.
-        val chipVisibility = if (state.streak.current >= 1) View.VISIBLE else View.GONE
-        views.setViewVisibility(if (stacked) R.id.widget_chip_box else R.id.widget_chip, chipVisibility)
-        views.setTextViewText(R.id.widget_chip, "🔥 ${state.streak.current}")
-        views.setTextViewTextSize(R.id.widget_chip, TypedValue.COMPLEX_UNIT_SP, layout.chipFontSize / fontScale)
-        // Side by side the chip lies in the text column (root: opens the app). Stacked its touch box
-        // opens the app itself, since it may overlap the bottle box.
-        if (stacked) views.setOnClickPendingIntent(R.id.widget_chip_box, openAppIntent(id))
-
-        // Undo, only when today has an intake.
-        views.setViewVisibility(R.id.widget_undo, if (state.hasIntakeToday) View.VISIBLE else View.GONE)
-        views.setOnClickPendingIntent(R.id.widget_undo, tapIntent(WidgetTapReceiver.ACTION_UNDO, id))
-
-        if (stacked) {
-            views.setViewVisibility(R.id.widget_control_row, if (layout.controlRowHeight > 0f) View.VISIBLE else View.GONE)
+        when (shape) {
+            WidgetShape.STACKED, WidgetShape.SIDE -> {
+                // Streak chip, only from a streak of one day and where it fits.
+                val stacked = shape == WidgetShape.STACKED
+                views.setViewVisibility(if (stacked) R.id.widget_chip_box else R.id.widget_chip, if (layout.chipFits) View.VISIBLE else View.GONE)
+                views.setTextViewText(R.id.widget_chip, texts.chip.orEmpty())
+                textSize(R.id.widget_chip, layout.chipFontSize)
+                // Side by side the chip lies in the text column (root: opens the app). Stacked its
+                // touch box opens the app itself, since it may overlap the bottle box.
+                if (stacked) {
+                    views.setOnClickPendingIntent(R.id.widget_chip_box, openAppIntent(id))
+                    views.setViewVisibility(R.id.widget_control_row, if (layout.controlRowHeight > 0f) View.VISIBLE else View.GONE)
+                    if (modern) {
+                        views.setViewLayoutHeight(R.id.widget_chip_box, layout.controlSize, dip)
+                        if (layout.controlRowHeight > 0f) views.setViewLayoutHeight(R.id.widget_control_row, layout.controlRowHeight, dip)
+                    }
+                } else if (modern) {
+                    // Exact widths on both sides of the row, so the XML weights have nothing left to share.
+                    views.setViewLayoutWidth(R.id.widget_text_column, layout.textColumnWidth, dip)
+                }
+            }
+            WidgetShape.SLIM -> {
+                views.setTextViewText(R.id.widget_amount_goal, texts.goal)
+                textSize(R.id.widget_amount_goal, layout.goalFontSize)
+                if (modern) views.setViewLayoutHeight(R.id.widget_amount_goal, layout.goalRowHeight, dip)
+                // The two lines are read once, as the one-line amount.
+                views.setContentDescription(R.id.widget_amount_box, texts.line)
+            }
+            WidgetShape.MINI -> {
+                if (modern) views.setViewLayoutMargin(R.id.widget_amount, RemoteViews.MARGIN_TOP, layout.labelOffset, dip)
+            }
         }
+
+        // Undo, only when today has an intake and where it fits. Slim keeps its row while it is
+        // hidden, so the bottle does not move with the first intake of the day.
+        if (shape != WidgetShape.MINI) {
+            val hidden = if (shape == WidgetShape.SLIM) View.INVISIBLE else View.GONE
+            views.setViewVisibility(R.id.widget_undo, if (layout.undoFits && state.hasIntakeToday) View.VISIBLE else hidden)
+            views.setOnClickPendingIntent(R.id.widget_undo, tapIntent(WidgetTapReceiver.ACTION_UNDO, id))
+            if (modern) {
+                views.setViewLayoutWidth(R.id.widget_undo, layout.controlSize, dip)
+                views.setViewLayoutHeight(R.id.widget_undo, layout.controlSize, dip)
+                views.setViewLayoutWidth(R.id.widget_undo_icon, layout.controlSize * 0.5f, dip)
+                views.setViewLayoutHeight(R.id.widget_undo_icon, layout.controlSize * 0.5f, dip)
+            }
+        }
+
         if (modern) {
-            val dip = TypedValue.COMPLEX_UNIT_DIP
-            views.setViewLayoutWidth(R.id.widget_undo, layout.controlSize, dip)
-            views.setViewLayoutHeight(R.id.widget_undo, layout.controlSize, dip)
-            views.setViewLayoutWidth(R.id.widget_undo_icon, layout.controlSize * 0.5f, dip)
-            views.setViewLayoutHeight(R.id.widget_undo_icon, layout.controlSize * 0.5f, dip)
-            // Stacked: image and flipper container sized alike; side by side: their common box.
-            val bottleViews = if (stacked) intArrayOf(R.id.widget_bottle, R.id.widget_frames) else intArrayOf(R.id.widget_bottle_box)
+            // Stacked and slim: image and flipper container sized alike; side and mini: their common box.
+            val bottleViews = when (shape) {
+                WidgetShape.STACKED, WidgetShape.SLIM -> intArrayOf(R.id.widget_bottle, R.id.widget_frames)
+                WidgetShape.SIDE, WidgetShape.MINI -> intArrayOf(R.id.widget_bottle_box)
+            }
             for (viewId in bottleViews) {
                 views.setViewLayoutWidth(viewId, layout.bottleWidth, dip)
                 views.setViewLayoutHeight(viewId, layout.bottleHeight, dip)
             }
-            if (stacked) {
-                views.setViewLayoutHeight(R.id.widget_chip_box, layout.controlSize, dip)
-                if (layout.controlRowHeight > 0f) views.setViewLayoutHeight(R.id.widget_control_row, layout.controlRowHeight, dip)
-            } else {
-                // Exact widths on both sides of the row, so the XML weights have nothing left to share.
-                views.setViewLayoutWidth(R.id.widget_text_column, layout.textColumnWidth, dip)
-            }
         }
 
         val percent = (state.shownFill * 100).roundToInt()
-        views.setContentDescription(R.id.widget_bottle, context.getString(R.string.widget_bottle_description, percent))
+        val bottleDescription = context.getString(R.string.widget_bottle_description, percent)
+        // A mini widget too small for its label still tells the amount, once.
+        views.setContentDescription(R.id.widget_bottle, if (layout.amountShown) bottleDescription else "$bottleDescription, ${texts.line}")
         // Both cases replace the flipper container's content: a static update detaches (and so
         // stops) any level animation; each update inflates a fresh flipper that starts at child 0.
         views.removeAllViews(R.id.widget_frames)
@@ -284,7 +322,14 @@ internal class WidgetViews(context: Context) {
             R.id.widget_frame_44, R.id.widget_frame_45, R.id.widget_frame_46, R.id.widget_frame_47,
         )
 
-        fun amountText(state: TodayState): String = AmountFormat.totalOfGoal(state.totalMl, state.goalMl)
+        fun texts(state: TodayState): WidgetTexts = WidgetTexts.of(state.totalMl, state.goalMl, state.streak.current)
+
+        private fun layoutOf(shape: WidgetShape): Int = when (shape) {
+            WidgetShape.STACKED -> R.layout.widget_stacked
+            WidgetShape.SIDE -> R.layout.widget_side
+            WidgetShape.SLIM -> R.layout.widget_slim
+            WidgetShape.MINI -> R.layout.widget_mini
+        }
 
         /**
          * The sizes the launcher reports for widget [id], in dp. Android 12+: its size list.
