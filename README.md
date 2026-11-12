@@ -3,8 +3,20 @@
 Wasser-Tracker für Android. Das Homescreen-Widget ist die Hauptsache: Ein Tap zählt ein Glas,
 die Flasche füllt sich. Die App zeigt Verlauf und Einstellungen. Alles bleibt lokal auf dem Gerät.
 
+Das Widget auf dem Startbildschirm, in vier Größen (1×1, 1×2, 2×2, 2×1):
+
 <p>
-  <img src="docs/images/widget.png" alt="Das Widget in 2×2: Flasche, Menge, Serie und Rückgängig-Pfeil" width="230">
+  <img src="docs/images/widgets-hell.png" alt="Vier Widget-Größen im hellen Design, Flasche zu gut der Hälfte gefüllt, 1,25 von 2 Litern" width="210">
+  <img src="docs/images/widgets-dunkel.png" alt="Dieselben Widgets im dunklen Design" width="210">
+  <img src="docs/images/widgets-ziel-erreicht.png" alt="Tagesziel erreicht: volle Flaschen mit goldenem Rand und Funkeln" width="210">
+  <img src="docs/images/widgets-rosa-leert-sich.png" alt="Wasserfarbe Rosa und die Einstellung, bei der sich die Flasche beim Trinken leert" width="210">
+</p>
+
+Von links: hell, dunkel, Tagesziel erreicht, andere Wasserfarbe mit „Flasche leert sich“.
+
+Die App:
+
+<p>
   <img src="docs/images/app-heute.png" alt="Die App: heutiger Stand mit Flasche, Serie und Wochenbalken" width="230">
   <img src="docs/images/app-verlauf.png" alt="Die App: Wochenbalken und Monatskalender" width="230">
 </p>
