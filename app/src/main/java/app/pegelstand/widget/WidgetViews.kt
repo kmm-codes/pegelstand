@@ -110,13 +110,18 @@ internal class WidgetViews(context: Context) {
         val density = context.resources.displayMetrics.density
         val fontScale = max(context.resources.configuration.fontScale, 1f)
 
+        // Tap zones: the root (bottle and every spot outside the zones below) adds an intake; the
+        // open-app zone lies under the content, whose views let taps through except chip and undo.
         val padding = (layout.padding * density).roundToInt()
-        views.setViewPadding(ROOT, padding, padding, padding, padding)
+        views.setViewPadding(R.id.widget_content, padding, padding, padding, padding)
         if (modern) views.setBoolean(ROOT, "setClipToOutline", true)
         views.setOnClickPendingIntent(ROOT, tapIntent(WidgetTapReceiver.ACTION_ADD, id))
         views.setContentDescription(ROOT, context.getString(R.string.widget_add_description, state.mlPerTap))
+        views.setOnClickPendingIntent(R.id.widget_open, openAppIntent(id))
+        // Stacked: the strip's bottom padding is the content padding, so it ends at the widget edge.
+        if (stacked) views.setViewPadding(R.id.widget_open, 0, 0, 0, padding)
 
-        // Amount: "drunk / goal"; tapping it opens the app.
+        // Amount: "drunk / goal"; the open-app zone underneath takes its taps.
         views.setTextViewText(R.id.widget_amount, amountText(state))
         views.setTextViewTextSize(R.id.widget_amount, TypedValue.COMPLEX_UNIT_SP, layout.amountFontSize / fontScale)
         if (modern) {
@@ -127,13 +132,14 @@ internal class WidgetViews(context: Context) {
             val palette = PegelColors.of(isNight())
             views.setTextColor(R.id.widget_amount, if (state.goalReached) palette.goldText else palette.onSurface)
         }
-        views.setOnClickPendingIntent(R.id.widget_amount, openAppIntent(id))
 
         // Streak chip, only from a streak of one day.
         val chipVisibility = if (state.streak.current >= 1) View.VISIBLE else View.GONE
         views.setViewVisibility(if (stacked) R.id.widget_chip_box else R.id.widget_chip, chipVisibility)
         views.setTextViewText(R.id.widget_chip, "🔥 ${state.streak.current}")
         views.setTextViewTextSize(R.id.widget_chip, TypedValue.COMPLEX_UNIT_SP, layout.chipFontSize / fontScale)
+        // Side by side the chip lies in the open-app column; stacked its touch box opens the app.
+        if (stacked) views.setOnClickPendingIntent(R.id.widget_chip_box, openAppIntent(id))
 
         // Undo, only when today has an intake.
         views.setViewVisibility(R.id.widget_undo, if (state.hasIntakeToday) View.VISIBLE else View.GONE)
@@ -157,10 +163,14 @@ internal class WidgetViews(context: Context) {
             if (stacked) {
                 views.setViewLayoutHeight(R.id.widget_chip_box, layout.controlSize, dip)
                 if (layout.controlRowHeight > 0f) views.setViewLayoutHeight(R.id.widget_control_row, layout.controlRowHeight, dip)
+                // The strip's spacer has the amount row's height; the strip adds the bottom padding.
+                views.setViewLayoutHeight(R.id.widget_open_row, layout.amountRowHeight, dip)
             } else {
                 // Exact widths on both sides of the row, so the XML weights have nothing left to share.
-                val textWidth = size.width - 2 * layout.padding - layout.bottleWidth - 2 * SIDE_GAP_DP
-                views.setViewLayoutWidth(R.id.widget_text_column, max(0f, textWidth), dip)
+                views.setViewLayoutWidth(R.id.widget_text_column, layout.textColumnWidth, dip)
+                // The open-app row mirrors it: a gap as wide as the bottle box, then the zone.
+                views.setViewLayoutWidth(R.id.widget_open_gap, layout.bottleWidth, dip)
+                views.setViewLayoutWidth(R.id.widget_open, layout.openColumnWidth, dip)
             }
         }
 
@@ -223,9 +233,6 @@ internal class WidgetViews(context: Context) {
 
         /** A fixed wave phase: the widget shows the wave at rest. */
         private const val WAVE_PHASE = 0.9f
-
-        /** Margin on each side of the bottle in the side-by-side layout (widget_side.xml). */
-        private const val SIDE_GAP_DP = 6f
 
         private val DEFAULT_SIZE = SizeDp(110f, 110f)
 

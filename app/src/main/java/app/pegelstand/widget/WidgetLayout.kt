@@ -14,6 +14,10 @@ import kotlin.math.min
  *   narrowed so the corners stay beside it. Whichever gives the larger bottle wins.
  * - **Side by side** (wide widgets): bottle on the left at full height, amount line and chip to
  *   its right, undo in the top-right corner.
+ *
+ * Tap zones (see SPEC): the root adds an intake; an open-app zone covers the text. Stacked, it is
+ * a full-width strip of [openStripHeight] at the bottom; side by side, a full-height column of
+ * [openColumnWidth] at the end edge.
  */
 data class WidgetLayout(
     val sideBySide: Boolean,
@@ -27,9 +31,20 @@ data class WidgetLayout(
     val chipFontSize: Float,
     /** Undo touch target edge. */
     val controlSize: Float,
+    /** Width of the text column (amount and chip); side by side only, 0 when stacked. */
+    val textColumnWidth: Float,
 ) {
+    /** Stacked: the open-app strip, from the top of the amount row down to the widget's edge. */
+    val openStripHeight: Float get() = amountRowHeight + padding
+
+    /** Side by side: the open-app column, from the text column's start out to the widget's edge. */
+    val openColumnWidth: Float get() = textColumnWidth + padding
+
     companion object {
         const val PADDING = 10f
+
+        /** Margin on each side of the bottle in the side-by-side layout (widget_side.xml). */
+        const val SIDE_GAP = 6f
         private const val MIN_TOUCH = 48f
         private const val SMALL_TOUCH = 40f
         private const val WIDE_RATIO = 1.45f
@@ -55,16 +70,19 @@ data class WidgetLayout(
                 val bottleW = min(bottleH * aspect, innerW * 0.5f)
                 val textW = innerW - bottleW - 2 * GAP - control / 2f
                 val font = fitFont(textW, textEm, maxFont = min(MAX_FONT, innerH * 0.24f))
+                val bottleWidth = floor(bottleW)
                 return WidgetLayout(
                     sideBySide = true,
                     padding = PADDING,
-                    bottleWidth = floor(bottleW),
+                    bottleWidth = bottleWidth,
                     bottleHeight = floor(bottleW / aspect),
                     controlRowHeight = 0f,
                     amountRowHeight = max(control, font * 1.6f),
                     amountFontSize = font,
                     chipFontSize = chipFont(font),
                     controlSize = control,
+                    // Exact, so the XML weights have nothing left to share.
+                    textColumnWidth = max(0f, innerW - bottleWidth - 2 * SIDE_GAP),
                 )
             }
 
@@ -88,6 +106,7 @@ data class WidgetLayout(
                 amountFontSize = font,
                 chipFontSize = chipFont(font),
                 controlSize = control,
+                textColumnWidth = 0f,
             )
         }
 

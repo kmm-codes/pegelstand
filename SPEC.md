@@ -120,9 +120,16 @@ layout per size, so frames pushed beside it are ignored).
   lower-case l reads as a vertical bar; German decimal comma, at most two
   decimals, trailing zeros dropped); a streak chip `🔥 6` when streak ≥ 1; a small undo icon,
   shown only when today has an intake.
-- Tap anywhere on the widget except the two controls below = `addIntake()`.
-  Tap on the amount text = open the app. Tap on undo = `undoLast()`. Touch targets ≥ 48 dp
-  where the size allows it.
+- Tap zones, so that it is predictable where a tap drinks and where it opens the app:
+  - **Bottle = drink.** A tap on the bottle, and on any spot that is none of the zones below,
+    calls `addIntake()`.
+  - **Text = app.** Stacked layout: the amount strip opens the app; the strip spans the full
+    widget width and reaches from the top of the amount row down to the widget's bottom edge,
+    padding included (a tap just below the text must not drink). The streak chip (its whole
+    touch box) opens the app as well. Side-by-side layout: the whole text column (amount and
+    chip, full height, out to the widget's edge) opens the app.
+  - Undo icon = `undoLast()`; it stays on top of the other zones.
+  - Touch targets ≥ 48 dp where the size allows it.
 - A widget tap gives a short vibration tick as confirmation (`VIBRATE` permission).
 - The bottle is drawn with `android.graphics.Canvas` into a bitmap sized from the widget's actual
   size and shown in an `ImageView`.
@@ -135,8 +142,8 @@ layout per size, so frames pushed beside it are ignored).
 
 When today's level changes (tap, undo, notification action, a change made in the app), the bottle
 in the widget animates from the level it currently shows to the new one: about 500 ms, eased,
-rising or falling. Reaching the goal blends to gold during the rise. Only on change; nothing
-moves while idle.
+rising or falling. Reaching the goal blends to gold during the rise. Between changes the water
+surface keeps moving gently (see "Idle wave" at the end of this section).
 
 - **One update, launcher-timed frames.** The app renders the frames (old level → new level) and
   sends them in a single full `updateAppWidget`: a freshly added `ViewFlipper`
@@ -150,10 +157,36 @@ moves while idle.
 - **Bitmap budget.** All frames of one update must stay well under the RemoteViews bitmap cap
   (6 × display width × height bytes); frame size and count are derived from the real display
   size. If the cap is hit anyway, fall back to a static update at once.
-- Size changes, day rollover, colour or goal changes and theme switches update statically.
+- Size changes, day rollover, colour or goal changes and theme switches update without a level
+  animation.
 - The static image keeps the light/dark pair; animation frames use the current mode only.
 - Fallback, only if device measurement shows the flipper is not smooth enough: push the same
   frames as separate full updates, picked by elapsed time (late frames dropped, not delayed).
+
+**Idle wave.** While nothing changes, the water surface in the widget moves: a calm, seamless
+loop of the surface wave (the user asked for it; the bottle should look alive, not busy).
+
+- Every static state (the closing update of a change, placement, resize, rollover, settings
+  change, process start) consists of the static bottle image as before (light/dark pair) and, on
+  top of it, a looping `ViewFlipper` whose frames are the same bottle at evenly spaced wave
+  phases over one full period. Frame 0 has the phase of the static image, so it is that image
+  pixel for pixel. Starting point: 24 frames, 100 ms apart (a 2.4 s loop); tune by looking at
+  recordings.
+- The launcher plays the loop by itself; the app sends nothing while idle. The loop stops by
+  itself when the home screen is not visible or the screen is off.
+- The frames are rendered for the current light/dark mode only. They must never be visible in
+  the other mode: the flipper is shown only while the launcher's night mode matches the mode
+  the frames were rendered for (night-qualified resources decide that inside the launcher, with
+  no update from the app). After a theme switch the static pair underneath shows, correct and
+  still, until the next update; a configuration change in a live process refreshes at once.
+- Bitmap budget as above. If 24 full-size frames do not fit, use fewer distinct frames at the
+  same loop length (16, 12, 8; a frame then fills several flipper children, sharing one
+  `Bitmap`). Idle frames are never scaled down. If 8 do not fit: no idle wave.
+- No idle flipper when all frames would be identical (the wave is flat at 0 % and 100 %) or
+  when the system setting "remove animations" is on.
+- The change animation leads into the loop: its last frame is the loop's frame 0, and the wave
+  keeps moving during the rise or fall instead of freezing. The closing update must still land
+  inside the hold, so the idle frames are rendered before the wait ends, not after it.
 
 ## Bottle (shared visual)
 
@@ -179,10 +212,13 @@ without opening the app. Tapping the body opens the app. One notification id, re
 
 ## App (Compose, single activity)
 
-One scrolling screen plus settings behind a gear icon.
+One scrolling screen plus settings behind a gear icon. There is only ever one instance of the
+activity: opening the app from the widget or the notification brings the existing one to the
+front, so one "back" leaves the app.
 
 1. **Heute**: large bottle, animated (wave moves, level eases to the new value), amount and goal,
-   a large "+250 ml" button (real tap size), undo. Reaching the goal gets a visible moment
+   a large "+250 ml" button (real tap size), undo. Tapping the bottle adds one tap, exactly like
+   the button. Reaching the goal gets a visible moment
    (the bottle turns gold, a short celebration), once per day.
 2. **Streak**: current streak, longest streak, average of the last 7 days.
 3. **Woche**: 7 bars, Monday to Sunday, with a goal line; reached days in gold.

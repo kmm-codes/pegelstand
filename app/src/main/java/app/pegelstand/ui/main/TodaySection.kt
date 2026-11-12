@@ -14,6 +14,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +56,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -116,6 +119,8 @@ fun TodaySection(
 
     val percent = (target * 100).roundToInt()
     val bottleDescription = stringResource(R.string.main_bottle_description, percent)
+    val addLabel = stringResource(R.string.main_add_description, today.mlPerTap)
+    val bottleTouch = remember { MutableInteractionSource() }
     Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier.fillMaxWidth().height(BottleHeight),
@@ -134,6 +139,15 @@ fun TodaySection(
                 goalReached = today.goalReached,
                 modifier = Modifier
                     .size(width = BottleHeight * BottleRenderer.ASPECT, height = BottleHeight)
+                    // Tapping the bottle adds one tap, like the button and like the widget. No
+                    // ripple: it would be a rectangle around a bottle; the rising level answers.
+                    .clickable(
+                        interactionSource = bottleTouch,
+                        indication = null,
+                        onClickLabel = addLabel,
+                        role = Role.Button,
+                        onClick = onAdd,
+                    )
                     .graphicsLayer {
                         val pop = 1f + POP_SCALE * sin(PI.toFloat() * celebration.value)
                         scaleX = pop

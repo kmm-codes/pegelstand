@@ -19,9 +19,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Pegelstand">
 
+        <!-- singleTask: opening from the widget or the notification reuses the screen that the
+             launcher icon opened, instead of stacking a second one (two "back" to leave). -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

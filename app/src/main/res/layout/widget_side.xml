@@ -1,90 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Wide widgets: bottle on the left at full height, amount and streak chip to its right, undo in
      the top-right corner. Sizes are set per widget size from WidgetLayout on Android 12+; the
-     weights are the fallback before that. Taps on the root add an intake. -->
+     weights are the fallback before that. Tap zones: the root adds an intake; the text column
+     side (widget_open) opens the app; undo undoes. The root has no padding so the open-app zone
+     reaches the widget edges; widget_content carries the padding instead. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
-    android:padding="10dp">
+    android:background="@drawable/widget_background">
 
+    <!-- Open-app zone: mirrors the row in widget_content so it starts where the text column
+         starts and runs to the end edge at full height. The gap stands for widget_content's
+         padding (10dp) plus the bottle box with its margins (6dp); widget_open is 10dp (that
+         padding) wider than the text column, so with the same weights both rows share out the
+         same excess. It lies below widget_content, whose views pass taps through except undo. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:baselineAligned="false"
-        android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <FrameLayout
-            android:id="@+id/widget_bottle_box"
+            android:id="@+id/widget_open_gap"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginHorizontal="6dp"
-            android:layout_weight="0.6">
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="0.6" />
 
-            <ImageView
-                android:id="@+id/widget_bottle"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@string/widget_bottle"
-                android:scaleType="fitCenter" />
-
-            <!-- Holds the animation flipper while a level change plays; empty otherwise. -->
-            <FrameLayout
-                android:id="@+id/widget_frames"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:importantForAccessibility="noHideDescendants" />
-        </FrameLayout>
-
-        <LinearLayout
-            android:id="@+id/widget_text_column"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
+        <FrameLayout
+            android:id="@+id/widget_open"
+            android:layout_width="10dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center_horizontal"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/widget_amount"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:gravity="center"
-                android:maxLines="1"
-                android:paddingHorizontal="8dp"
-                android:textColor="@color/widget_on_surface"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/widget_chip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/widget_chip"
-                android:maxLines="1"
-                android:paddingHorizontal="7dp"
-                android:paddingVertical="2dp"
-                android:textColor="@color/widget_on_chip"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+            android:contentDescription="@string/widget_open_description" />
     </LinearLayout>
 
     <FrameLayout
-        android:id="@+id/widget_undo"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_gravity="top|end"
-        android:contentDescription="@string/widget_undo_description">
+        android:id="@+id/widget_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="10dp">
 
-        <ImageView
-            android:id="@+id/widget_undo_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_gravity="center"
-            android:importantForAccessibility="no"
-            android:src="@drawable/ic_widget_undo"
-            android:tint="@color/widget_on_surface" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:baselineAligned="false"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:id="@+id/widget_bottle_box"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginHorizontal="6dp"
+                android:layout_weight="0.6">
+
+                <ImageView
+                    android:id="@+id/widget_bottle"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/widget_bottle"
+                    android:scaleType="fitCenter" />
+
+                <!-- Holds the animation flipper while a level change plays; empty otherwise. -->
+                <FrameLayout
+                    android:id="@+id/widget_frames"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:importantForAccessibility="noHideDescendants" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:id="@+id/widget_text_column"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/widget_amount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:paddingHorizontal="8dp"
+                    android:textColor="@color/widget_on_surface"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_chip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/widget_chip"
+                    android:maxLines="1"
+                    android:paddingHorizontal="7dp"
+                    android:paddingVertical="2dp"
+                    android:textColor="@color/widget_on_chip"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/widget_undo"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="top|end"
+            android:contentDescription="@string/widget_undo_description">
+
+            <ImageView
+                android:id="@+id/widget_undo_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_undo"
+                android:tint="@color/widget_on_surface" />
+        </FrameLayout>
     </FrameLayout>
 </FrameLayout>
