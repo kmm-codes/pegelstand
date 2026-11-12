@@ -4,7 +4,8 @@
      Sizes are set per widget size from WidgetLayout on Android 12+; the XML values are the
      fallback before that (bottle in the space the text and the undo row leave). Tap zones: only
      the bottle's box (widget_frames) adds an intake; the root, out to the widget edges, opens the
-     app; undo undoes. The root has no padding; widget_content carries it. -->
+     app; the undo strip, the full width from the bottom edge, undoes. The root has no padding;
+     widget_content carries it. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layout_width="match_parent"
@@ -74,20 +75,32 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
+        <!-- Keeps the undo strip's place in the column: the strip's height less the bottom padding,
+             so bottle and amount end where the strip begins. Empty; taps fall through. -->
         <FrameLayout
-            android:id="@+id/widget_undo"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:contentDescription="@string/widget_undo_description">
-
-            <ImageView
-                android:id="@+id/widget_undo_icon"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_gravity="center"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_widget_undo"
-                android:tint="@color/widget_on_surface" />
-        </FrameLayout>
+            android:id="@+id/widget_undo_row"
+            android:layout_width="match_parent"
+            android:layout_height="42dp" />
     </LinearLayout>
+
+    <!-- The undo strip: full width, from the bottom edge through widget_content's padding up to
+         the top of widget_undo_row (row height plus the 6 dp padding). It lies above
+         widget_content, so it takes its taps first; while hidden (no intake today) it keeps its
+         place and taps there open the app. -->
+    <FrameLayout
+        android:id="@+id/widget_undo"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom"
+        android:contentDescription="@string/widget_undo_description">
+
+        <ImageView
+            android:id="@+id/widget_undo_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_widget_undo"
+            android:tint="@color/widget_on_surface" />
+    </FrameLayout>
 </FrameLayout>

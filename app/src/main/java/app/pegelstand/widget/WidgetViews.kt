@@ -172,10 +172,19 @@ internal class WidgetViews(context: Context) {
 
         when (shape) {
             WidgetShape.STACKED, WidgetShape.SIDE -> {
-                // Streak chip, only from a streak of one day and where it fits.
+                // Streak chip, only from a streak of one day and where it fits. Where the layout
+                // reserves its slot, a hidden chip keeps its place (invisible, carrying the
+                // reference text, so it is as tall as a shown one): side by side the column is
+                // centred vertically and the amount must not move when a streak starts.
                 val stacked = shape == WidgetShape.STACKED
-                views.setViewVisibility(if (stacked) R.id.widget_chip_box else R.id.widget_chip, if (layout.chipFits) View.VISIBLE else View.GONE)
-                views.setTextViewText(R.id.widget_chip, texts.chip.orEmpty())
+                val chipShown = layout.chipShown(texts)
+                val chipVisibility = when {
+                    chipShown -> View.VISIBLE
+                    layout.chipRoom -> View.INVISIBLE
+                    else -> View.GONE
+                }
+                views.setViewVisibility(if (stacked) R.id.widget_chip_box else R.id.widget_chip, chipVisibility)
+                views.setTextViewText(R.id.widget_chip, if (chipShown) texts.chip else WidgetTexts.REFERENCE_CHIP)
                 textSize(R.id.widget_chip, layout.chipFontSize)
                 // Side by side the chip lies in the text column (root: opens the app). Stacked its
                 // touch box opens the app itself, since it may overlap the bottle box.
@@ -203,14 +212,20 @@ internal class WidgetViews(context: Context) {
             }
         }
 
-        // Undo, only when today has an intake and where it fits. Slim keeps its row while it is
-        // hidden, so the bottle does not move with the first intake of the day.
+        // Undo, only when today has an intake and where it fits. It lies on top of the content in
+        // every shape, so hiding it moves nothing; slim keeps its row in the column regardless
+        // (widget_undo_row), and its strip spans the full width from the bottom edge.
         if (shape != WidgetShape.MINI) {
-            val hidden = if (shape == WidgetShape.SLIM) View.INVISIBLE else View.GONE
+            val slim = shape == WidgetShape.SLIM
+            val hidden = if (slim) View.INVISIBLE else View.GONE
             views.setViewVisibility(R.id.widget_undo, if (layout.undoFits && state.hasIntakeToday) View.VISIBLE else hidden)
             views.setOnClickPendingIntent(R.id.widget_undo, tapIntent(WidgetTapReceiver.ACTION_UNDO, id))
             if (modern) {
-                views.setViewLayoutWidth(R.id.widget_undo, layout.controlSize, dip)
+                if (slim) {
+                    views.setViewLayoutHeight(R.id.widget_undo_row, layout.undoRowHeight, dip)
+                } else {
+                    views.setViewLayoutWidth(R.id.widget_undo, layout.controlSize, dip)
+                }
                 views.setViewLayoutHeight(R.id.widget_undo, layout.controlSize, dip)
                 views.setViewLayoutWidth(R.id.widget_undo_icon, layout.controlSize * 0.5f, dip)
                 views.setViewLayoutHeight(R.id.widget_undo_icon, layout.controlSize * 0.5f, dip)

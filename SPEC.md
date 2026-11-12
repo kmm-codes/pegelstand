@@ -117,11 +117,19 @@ layout per size, so frames pushed beside it are ignored).
 - Default 2×2, resizable both ways down to one cell. Must look right at 2×2, 2×3, 3×2 and 4×2
   and at the small sizes below: bottle scaled to the available space, no clipped or
   ellipsized text.
+- **The layout never depends on the day's state.** Which shape a widget has, and where its
+  controls sit, follows from its size (and the settings) alone: not from the amount drunk, not
+  from whether the streak chip or the undo icon is currently shown, not from "goal reached".
+  A control that is hidden keeps its place free. Nothing may move when she drinks, reaches the
+  goal or starts a streak.
+- The one-line amount `1,25 / 2 L` is only used where it is comfortably readable (at least
+  about 14 dp font for the longest everyday amount); narrower widgets are slim.
 - Small sizes (the layout is chosen from the reported size in dp, not from cell counts):
   - **Slim (1×2, 1×3):** too narrow for the one-line amount `1,25 / 2 L`. Top to bottom: the
     bottle as large as the width allows; the amount in two lines, the drunk amount large
     (`1,25`) and below it smaller and muted `/ 2 L`; the undo icon at the bottom, centred, only
-    when today has an intake. No streak chip.
+    when today has an intake. Its touch box is the whole bottom strip: full widget width, at
+    least 48 dp tall, down to the widget's edge. No streak chip.
   - **Mini (1×1):** the bottle alone, as large as fits. The drunk amount with unit (`1,25 L`)
     sits on the bottle's body on a small rounded label in the widget's surface colour (slightly
     translucent), so it is readable on glass and on water, light and dark. The label does not

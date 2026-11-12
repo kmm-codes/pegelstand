@@ -25,7 +25,8 @@ enum class WidgetShape {
  * The texts of one state, and the texts whose widths decide the layout. Each `…Fit` text is the
  * wider of the shown text and the same text for [REFERENCE_TOTAL_ML]. Digits are estimated alike,
  * so for every total below 10 L the shape and the controls stay the same as she drinks; only a
- * longer amount can change them.
+ * longer amount can change them. The streak chip decides nothing: its slot is sized for
+ * [REFERENCE_CHIP] whether or not there is a streak.
  */
 data class WidgetTexts(
     /** One-line amount `1,25 / 2 L` (stacked, side; spoken in slim). */
@@ -45,6 +46,9 @@ data class WidgetTexts(
     companion object {
         /** A total as wide as any total below 10 L: one digit, two decimals. */
         const val REFERENCE_TOTAL_ML = 8880
+
+        /** A chip as wide as any streak below 1000 days. */
+        const val REFERENCE_CHIP = "🔥 888"
 
         fun of(totalMl: Int, goalMl: Int, streak: Int): WidgetTexts {
             val line = AmountFormat.totalOfGoal(totalMl, goalMl)
@@ -67,18 +71,46 @@ data class WidgetTexts(
     }
 }
 
+/** A rectangle in dp, measured from the widget's top-left corner. */
+data class BoxDp(val x: Float, val y: Float, val width: Float, val height: Float) {
+    val right: Float get() = x + width
+    val bottom: Float get() = y + height
+
+    fun overlaps(other: BoxDp): Boolean = x < other.right && other.x < right && y < other.bottom && other.y < bottom
+}
+
+/**
+ * Where the parts of one widget size lie, as the XML layouts place them with the sizes that
+ * [WidgetLayout] sets (Android 12+). [chip] and [undo] are the reserved slots; they stay free while
+ * the control is hidden, and are null only where the shape has no room for the control at all.
+ */
+data class WidgetBoxes(
+    /** The add-intake zone (`widget_frames`). */
+    val bottle: BoxDp,
+    /** The row the amount is centred in (both lines in slim, the label in mini); null if not shown. */
+    val amount: BoxDp?,
+    /** The streak chip's slot: its touch box (stacked) or the space it is centred in (side). */
+    val chip: BoxDp?,
+    /** The undo touch box. */
+    val undo: BoxDp?,
+)
+
 /**
  * Sizes of the widget's parts for one widget size, all in dp. Pure, so it is unit-tested.
  *
- * The shape follows from what fits at the reported size, not from cell counts. In order of
- * preference (a wide widget tries [WidgetShape.SIDE] first, any other [WidgetShape.STACKED]):
- * - **Stacked**: needs the one-line amount at [MIN_FONT], a bottle of at least [MIN_BOTTLE] and
- *   room for chip and undo side by side at the top. The corners get their own row above the
- *   bottle if that gives the larger bottle, else the bottle is narrowed to leave them room.
- * - **Side** (flat at one row): needs the one-line amount at [MIN_FONT] beside a bottle of at
- *   least [MIN_BOTTLE]. Chip and undo only where they do not touch the text.
+ * The shape follows from what fits at the reported size (and the goal), never from the day's
+ * state: only the `…Fit` texts of [WidgetTexts] and [WidgetTexts.REFERENCE_CHIP] decide, never
+ * whether there is a streak chip or an undo to show. A hidden control keeps its place free.
+ *
+ * In order of preference (a wide widget tries [WidgetShape.SIDE] first, any other
+ * [WidgetShape.STACKED]):
+ * - **Stacked**: needs the one-line amount at [READABLE_FONT], a bottle of at least [MIN_BOTTLE]
+ *   and room for the chip slot and undo side by side at the top. The corners get their own row
+ *   above the bottle if that gives the larger bottle, else the bottle is narrowed to leave them room.
+ * - **Side** (flat at one row): needs the one-line amount at [READABLE_FONT] beside a bottle of at
+ *   least [MIN_BOTTLE]. Chip slot and undo only where they do not touch the text.
  * - **Slim**: needs the two-line amount at [MIN_FONT] and a bottle of at least [MIN_BOTTLE] above
- *   it, with the undo row below.
+ *   it, with the undo strip below.
  * - **Mini**: always possible; the label is left out only where not even [MIN_FONT] fits.
  *
  * Tap zones (see SPEC): only the bottle's box ([bottleWidth] x [bottleHeight]) adds an intake;
@@ -100,19 +132,85 @@ data class WidgetLayout(
     val goalRowHeight: Float,
     val goalFontSize: Float,
     val chipFontSize: Float,
-    /** Undo touch target edge (0 in mini, which has no undo). */
+    /**
+     * Undo touch target: the square's edge (stacked, side), the height of the full-width strip
+     * from the widget's bottom edge (slim, which reaches through the padding); 0 in mini.
+     */
     val controlSize: Float,
     /** Width of the text column (amount and chip); side only, 0 otherwise. */
     val textColumnWidth: Float,
     /** The amount is shown; false only for a mini widget too small for its label. */
     val amountShown: Boolean,
-    /** There is room for this chip (false when there is no chip). */
-    val chipFits: Boolean,
+    /** A slot for the streak chip is reserved (sized for [WidgetTexts.REFERENCE_CHIP]), chip or not. */
+    val chipRoom: Boolean,
+    /** Width of the chip's slot; 0 without [chipRoom]. */
+    val chipSlotWidth: Float,
     /** There is room for the undo control (shown only when today has an intake). */
     val undoFits: Boolean,
     /** Mini: how far the label's centre lies below the centre of the bottle's box; 0 otherwise. */
     val labelOffset: Float,
 ) {
+    /** Slim: the undo row inside the padding, the part of the strip above the bottom padding; 0 otherwise. */
+    val undoRowHeight: Float get() = if (shape == WidgetShape.SLIM) controlSize - padding else 0f
+
+    /** The chip of [texts] is shown: there is a streak and it fits the reserved slot. */
+    fun chipShown(texts: WidgetTexts): Boolean =
+        chipRoom && texts.chip != null && chipWidth(texts.chip, chipFontSize) <= chipSlotWidth
+
+    /** Where the parts lie in a widget of [widthDp] x [heightDp], the size this layout was computed for. */
+    fun boxes(widthDp: Float, heightDp: Float): WidgetBoxes {
+        val innerW = widthDp - 2 * padding
+        val innerH = heightDp - 2 * padding
+        return when (shape) {
+            WidgetShape.STACKED -> {
+                // widget_content: a column (control row, bottle area, amount row); chip box and undo
+                // lie on top in the top corners.
+                val areaTop = padding + controlRowHeight
+                val areaH = innerH - controlRowHeight - amountRowHeight
+                WidgetBoxes(
+                    bottle = BoxDp(padding + (innerW - bottleWidth) / 2f, areaTop + (areaH - bottleHeight) / 2f, bottleWidth, bottleHeight),
+                    amount = BoxDp(padding, heightDp - padding - amountRowHeight, innerW, amountRowHeight),
+                    chip = if (chipRoom) BoxDp(padding, padding, chipSlotWidth, controlSize) else null,
+                    undo = if (undoFits) BoxDp(widthDp - padding - controlSize, padding, controlSize, controlSize) else null,
+                )
+            }
+            WidgetShape.SIDE -> {
+                // A row centred vertically: bottle box with its side gaps, then the text column,
+                // whose content (amount row, chip slot) is centred vertically too. Undo top right.
+                val columnX = padding + bottleWidth + 2 * SIDE_GAP
+                val chipH = if (chipRoom) chipHeight(chipFontSize) else 0f
+                val top = padding + (innerH - amountRowHeight - chipH) / 2f
+                WidgetBoxes(
+                    bottle = BoxDp(padding + SIDE_GAP, padding + (innerH - bottleHeight) / 2f, bottleWidth, bottleHeight),
+                    amount = BoxDp(columnX, top, textColumnWidth, amountRowHeight),
+                    chip = if (chipRoom) BoxDp(columnX + (textColumnWidth - chipSlotWidth) / 2f, top + amountRowHeight, chipSlotWidth, chipH) else null,
+                    undo = if (undoFits) BoxDp(widthDp - padding - controlSize, padding, controlSize, controlSize) else null,
+                )
+            }
+            WidgetShape.SLIM -> {
+                // widget_content: a column (bottle area, both amount lines, undo row); the undo strip
+                // lies on top, across the full width and through the bottom padding.
+                val areaH = innerH - amountRowHeight - goalRowHeight - undoRowHeight
+                WidgetBoxes(
+                    bottle = BoxDp(padding + (innerW - bottleWidth) / 2f, padding + (areaH - bottleHeight) / 2f, bottleWidth, bottleHeight),
+                    amount = BoxDp(padding, padding + areaH, innerW, amountRowHeight + goalRowHeight),
+                    chip = null,
+                    undo = BoxDp(0f, heightDp - controlSize, widthDp, controlSize),
+                )
+            }
+            WidgetShape.MINI -> {
+                val bottle = BoxDp(padding + (innerW - bottleWidth) / 2f, padding + (innerH - bottleHeight) / 2f, bottleWidth, bottleHeight)
+                val labelCentre = bottle.y + bottleHeight / 2f + labelOffset
+                WidgetBoxes(
+                    bottle = bottle,
+                    amount = if (amountShown) BoxDp(bottle.x, labelCentre - amountRowHeight / 2f, bottleWidth, amountRowHeight) else null,
+                    chip = null,
+                    undo = null,
+                )
+            }
+        }
+    }
+
     companion object {
         const val PADDING = 10f
 
@@ -137,6 +235,12 @@ data class WidgetLayout(
         const val MIN_FONT = 11f
         const val MIN_BOTTLE = 48f
 
+        /** Smallest font of the one-line amount (stacked, side); a narrower widget is slim. */
+        const val READABLE_FONT = 14f
+
+        /** Smallest touch target edge where the size allows it; the slim undo strip's height. */
+        const val MIN_TOUCH = 48f
+
         /** Height of one line of text per dp of font size (the font's line box with its padding). */
         const val LINE_HEIGHT = 1.4f
 
@@ -151,7 +255,6 @@ data class WidgetLayout(
         /** Gap between the stacked chip and undo. */
         const val CORNER_GAP = 4f
 
-        private const val MIN_TOUCH = 48f
         private const val SMALL_TOUCH = 40f
         private const val WIDE_RATIO = 1.45f
         private const val MAX_FONT = 30f
@@ -187,12 +290,16 @@ data class WidgetLayout(
             val innerW = w - 2 * PADDING
             val innerH = h - 2 * PADDING
             val textW = innerW - 2 * TEXT_PADDING
-            if (!fits(t.lineFit, MIN_FONT, textW)) return null
+            if (!fits(t.lineFit, READABLE_FONT, textW)) return null
             val amountRow = (h * 0.2f).coerceIn(if (h >= 160f) MIN_TOUCH else SMALL_TOUCH, 56f)
             val maxFont = min(MAX_FONT * 0.8f, amountRow * 0.5f)
-            // Chip (top left) and undo (top right) share the top edge and must not touch.
-            if (t.chip != null && chipWidth(t.chip, chipFont(maxFont)) + CORNER_GAP + control > innerW) return null
-            val font = fitFont(textW, estimateWidthEm(t.line), maxFont)
+            // Sized for the reference amount, so the text keeps its size as she drinks.
+            val font = fitFont(textW, estimateWidthEm(t.lineFit), maxFont)
+            val chipFont = chipFont(font)
+            // Chip slot (top left) and undo (top right) share the top edge and must not touch. The
+            // slot is reserved without a streak too, so a first streak day changes nothing.
+            val chipSlot = innerW - CORNER_GAP - control
+            if (chipWidth(WidgetTexts.REFERENCE_CHIP, chipFont) > chipSlot) return null
             val bottleAreaH = innerH - amountRow
             // Option A: corners beside the bottle (bottle narrowed by both corner columns).
             val besideW = min(innerW - 2 * control * 0.75f, bottleAreaH * aspect)
@@ -214,11 +321,12 @@ data class WidgetLayout(
                 amountFontSize = font,
                 goalRowHeight = 0f,
                 goalFontSize = 0f,
-                chipFontSize = chipFont(font),
+                chipFontSize = chipFont,
                 controlSize = control,
                 textColumnWidth = 0f,
                 amountShown = true,
-                chipFits = t.chip != null,
+                chipRoom = true,
+                chipSlotWidth = chipSlot,
                 undoFits = true,
                 labelOffset = 0f,
             )
@@ -229,33 +337,34 @@ data class WidgetLayout(
             val innerW = w - 2 * PADDING
             val innerH = h - 2 * PADDING
             // A little air above and below, so the cap and base do not touch the rounded edge; and
-            // never so wide that the amount no longer fits beside it at the smallest font.
-            val textRoom = estimateWidthEm(t.lineFit) * MIN_FONT + 2 * TEXT_PADDING
+            // never so wide that the amount no longer fits beside it at a readable font.
+            val textRoom = estimateWidthEm(t.lineFit) * READABLE_FONT + 2 * TEXT_PADDING
             val exactW = max(0f, minOf((innerH - 2 * GAP) * aspect, innerW * 0.5f, innerW - 2 * SIDE_GAP - textRoom))
             val bottleW = floor(exactW)
             val bottleH = floor(exactW / aspect)
             if (bottleH < MIN_BOTTLE) return null
             // Exact, so the XML weights have nothing left to share.
             val column = max(0f, innerW - bottleW - 2 * SIDE_GAP)
-            if (!fits(t.lineFit, MIN_FONT, column - 2 * TEXT_PADDING)) return null
+            if (!fits(t.lineFit, READABLE_FONT, column - 2 * TEXT_PADDING)) return null
             val maxFont = min(MAX_FONT, innerH * 0.24f)
 
-            // The column's content (amount row, chip) is centred vertically. Undo (top right) is
-            // clear of it if the text stays below the control even at the largest font with the
-            // chip, or if the centred text is narrowed to leave a control's width on both sides.
-            val tallest = amountRow(maxFont, control) + (t.chip?.let { chipHeight(chipFont(maxFont)) } ?: 0f)
+            // The column's content (amount row, chip slot) is centred vertically. Undo (top right)
+            // is clear of it if the text stays below the control even at the largest font with the
+            // chip slot, or if the centred text is narrowed to leave a control's width on both sides.
+            // The slot counts whether or not there is a streak, so a first streak day moves nothing.
+            val tallest = amountRow(maxFont, control) + chipHeight(chipFont(maxFont))
             val textTop = (innerH - tallest) / 2f + (amountRow(maxFont, control) - maxFont * LINE_HEIGHT) / 2f
             val below = textTop >= control
             val narrowed = column - 2 * control
-            val undoFits = below || fits(t.lineFit, MIN_FONT, narrowed - 2 * TEXT_PADDING)
+            val undoFits = below || fits(t.lineFit, READABLE_FONT, narrowed - 2 * TEXT_PADDING)
             val textWidth = if (below || !undoFits) column else narrowed
 
-            val font = fitFont(textWidth - 2 * TEXT_PADDING, estimateWidthEm(t.line), maxFont)
+            // Sized for the reference amount, so the text and the chip keep their size as she drinks.
+            val font = fitFont(textWidth - 2 * TEXT_PADDING, estimateWidthEm(t.lineFit), maxFont)
             val amountRow = amountRow(font, control)
             val chipFont = chipFont(font)
-            val chipFits = t.chip != null &&
-                amountRow + chipHeight(chipFont) <= innerH &&
-                chipWidth(t.chip, chipFont) <= textWidth
+            val chipRoom = amountRow + chipHeight(chipFont) <= innerH &&
+                chipWidth(WidgetTexts.REFERENCE_CHIP, chipFont) <= textWidth
             return WidgetLayout(
                 shape = WidgetShape.SIDE,
                 padding = PADDING,
@@ -270,7 +379,8 @@ data class WidgetLayout(
                 controlSize = control,
                 textColumnWidth = column,
                 amountShown = true,
-                chipFits = chipFits,
+                chipRoom = chipRoom,
+                chipSlotWidth = if (chipRoom) textWidth else 0f,
                 undoFits = undoFits,
                 labelOffset = 0f,
             )
@@ -286,9 +396,11 @@ data class WidgetLayout(
             val largeRow = ceil(large * LINE_HEIGHT)
             val smallRow = ceil(small * LINE_HEIGHT)
             val rest = innerH - largeRow - smallRow - SLIM_GAP
-            // A 48 dp undo target where it costs the bottle nothing (the width limits it), else 40 dp.
-            val control = if (rest - MIN_TOUCH >= innerW / aspect) MIN_TOUCH else SMALL_TOUCH
-            val bottleW = floor(max(0f, min(innerW, (rest - control) * aspect)))
+            // Undo is a strip across the full width, MIN_TOUCH tall from the widget's bottom edge:
+            // its row inside the padding is that less the bottom padding. Reserved with or without
+            // an intake today.
+            val undoRow = MIN_TOUCH - SMALL_PADDING
+            val bottleW = floor(max(0f, min(innerW, (rest - undoRow) * aspect)))
             val bottleH = floor(bottleW / aspect)
             if (bottleH < MIN_BOTTLE) return null
             return WidgetLayout(
@@ -302,10 +414,11 @@ data class WidgetLayout(
                 goalRowHeight = smallRow,
                 goalFontSize = small,
                 chipFontSize = 0f,
-                controlSize = control,
+                controlSize = MIN_TOUCH,
                 textColumnWidth = 0f,
                 amountShown = true,
-                chipFits = false,
+                chipRoom = false,
+                chipSlotWidth = 0f,
                 undoFits = true,
                 labelOffset = 0f,
             )
@@ -343,7 +456,8 @@ data class WidgetLayout(
                 controlSize = 0f,
                 textColumnWidth = 0f,
                 amountShown = shown,
-                chipFits = false,
+                chipRoom = false,
+                chipSlotWidth = 0f,
                 undoFits = false,
                 labelOffset = centre - bottleH / 2f,
             )
