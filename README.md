@@ -64,3 +64,7 @@ Der genaue Umfang steht in [SPEC.md](SPEC.md), Testbefehle für Debug-Builds in
   mit der Menge darauf) über 1×2 (schmal) bis 4×2.
 - Bedienung: Tipp auf die Flasche zählt, alles andere im Widget öffnet die App, der Pfeil macht
   den letzten Tipp rückgängig.
+
+## Lizenz
+
+[MIT](LICENSE).
