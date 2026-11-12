@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The idle wave's frames are drawn for one mode. The launcher resolves these per its own
+         night mode when it inflates the widget, so a flipper only shows in the mode it was drawn
+         for, without an update from the app (values-night swaps them). -->
+    <style name="WidgetIdleLight">
+        <item name="android:visibility">visible</item>
+    </style>
+
+    <style name="WidgetIdleDark">
+        <item name="android:visibility">gone</item>
+    </style>
+</resources>

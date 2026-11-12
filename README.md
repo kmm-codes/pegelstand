@@ -3,8 +3,9 @@
 Wasser-Tracker für Android. Das Homescreen-Widget ist die Hauptsache: Ein Tap zählt ein Glas,
 die Flasche füllt sich. Die App zeigt Verlauf und Einstellungen. Alles bleibt lokal auf dem Gerät.
 
-- Widget: Tap zählt die eingestellte Menge (Standard 250 ml), der Füllstand steigt animiert,
-  Rückgängig-Pfeil, Serie in Tagen, Gold bei erreichtem Tagesziel.
+- Widget: Tap auf die Flasche zählt die eingestellte Menge (Standard 250 ml), der Füllstand
+  steigt animiert, dazwischen bewegt sich das Wasser leicht (abschaltbar); Tap daneben öffnet die
+  App. Rückgängig-Pfeil, Serie in Tagen, Gold bei erreichtem Tagesziel.
 - App: heutiger Stand, Serie, Wochenbalken, Monatskalender, Einstellungen für Tagesziel,
   Menge pro Tap, Wasserfarbe und ob sich die Flasche füllt oder leert.
 - Erinnerungen kommen nur, wenn man hinter dem Tagesplan liegt.

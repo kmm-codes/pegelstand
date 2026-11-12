@@ -52,14 +52,20 @@ sealed interface WidgetChange {
  * one after another, [TICK_MS] apart, beginning with child 0 when the flipper is attached. The
  * first [MOTION_CHILDREN] children are the motion (the last of them is the final look), the rest
  * repeat the final look as a hold. The closing update, [STOP_SLACK_MS] after the motion, lands in
- * that hold, replaces the flipper by the static image and so stops it before it would wrap around.
+ * that hold, replaces the flipper by the static image (and the idle loop, see [WidgetIdle]) and so
+ * stops it before it would wrap around.
  */
 object WidgetMotion {
     /** Flipper interval; must match `android:flipInterval` in `widget_flipper.xml`. */
     const val TICK_MS = 33L
 
-    /** Children of the flipper in `widget_flipper.xml`. */
-    const val CHILDREN = 32
+    /**
+     * Children of the flipper in `widget_flipper.xml`: the motion, then a hold of about a second.
+     * The closing update carries the idle wave's frames and can take a few hundred ms to show up in
+     * the launcher; the long hold keeps it from arriving after the flipper has wrapped around to
+     * the old level.
+     */
+    const val CHILDREN = 48
 
     /** Children that carry the motion; the remaining ones hold the final look. */
     const val MOTION_CHILDREN = 16
@@ -171,6 +177,16 @@ object WidgetMotion {
     fun frameLooks(from: BottleLook, to: BottleLook, frames: Int): List<BottleLook> {
         require(frames >= 1) { "frames must be at least 1" }
         return List(frames) { k -> lookAt(from, to, (k + 1).toFloat() / frames) }
+    }
+
+    /**
+     * The wave phase of each of [frames] distinct images, at the same moments as [frameLooks]: the
+     * wave keeps moving at the idle loop's speed and the last image has the loop's first phase.
+     */
+    fun framePhases(frames: Int): List<Float> {
+        require(frames >= 1) { "frames must be at least 1" }
+        val duration = DURATION_MS.toFloat()
+        return List(frames) { k -> WidgetIdle.motionPhase(duration * (k + 1) / frames, duration) }
     }
 
     /**

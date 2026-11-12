@@ -94,7 +94,7 @@ streak ever.
 
 - Room: `intake(id, timestampMs, day, amountMl)`, `day_goal(day PK, goalMl)`.
   Day totals are `SUM(amountMl) GROUP BY day`. Exposed as `Flow`.
-- DataStore: `dailyGoalMl`, `mlPerTap`, `waterColor`, `bottleMode`, `remindersEnabled` (default true),
+- DataStore: `dailyGoalMl`, `mlPerTap`, `waterColor`, `bottleMode`, `widgetIdleWave` (default true), `remindersEnabled` (default true),
   `remindFrom`, `remindUntil`, plus reminder bookkeeping (`lastReminderAtMs`, `remindersSentDay`, `remindersSentCount`).
 - One `WaterRepository` is the only write path. `addIntake()` and `undoLast()` each do, in order:
   write, refresh all widgets, cancel a showing reminder notification, reschedule the next check.
@@ -114,20 +114,31 @@ The widget is a plain `AppWidgetProvider` with XML layouts. Glance was dropped b
 deliver animation frames (it publishes at most a few uneven updates per second and wraps the
 layout per size, so frames pushed beside it are ignored).
 
-- Default 2×2, resizable both ways. Must look right at 2×2, 2×3, 3×2 and 4×2: bottle scaled to
-  the available height, no clipped or ellipsized text.
+- Default 2×2, resizable both ways down to one cell. Must look right at 2×2, 2×3, 3×2 and 4×2
+  and at the small sizes below: bottle scaled to the available space, no clipped or
+  ellipsized text.
+- Small sizes (the layout is chosen from the reported size in dp, not from cell counts):
+  - **Slim (1×2, 1×3):** too narrow for the one-line amount `1,25 / 2 L`. Top to bottom: the
+    bottle as large as the width allows; the amount in two lines, the drunk amount large
+    (`1,25`) and below it smaller and muted `/ 2 L`; the undo icon at the bottom, centred, only
+    when today has an intake. No streak chip.
+  - **Mini (1×1):** the bottle alone, as large as fits. The drunk amount with unit (`1,25 L`)
+    sits on the bottle's body on a small rounded label in the widget's surface colour (slightly
+    translucent), so it is readable on glass and on water, light and dark. The label does not
+    take taps (a tap there drinks). No undo icon and no streak chip; undo is in the app.
+  - **Flat (2×1, 3×1, 4×1):** the side-by-side layout at one row: bottle left, amount right
+    (one line); streak chip and undo only if they fit without touching the text.
+  - Tap zones, level animation and idle wave work in every small size exactly as in the others.
 - Content: the bottle; below it the amount as `1,25 / 2 L` (capital L: in the bold widget font a
   lower-case l reads as a vertical bar; German decimal comma, at most two
   decimals, trailing zeros dropped); a streak chip `🔥 6` when streak ≥ 1; a small undo icon,
   shown only when today has an intake.
 - Tap zones, so that it is predictable where a tap drinks and where it opens the app:
-  - **Bottle = drink.** A tap on the bottle, and on any spot that is none of the zones below,
-    calls `addIntake()`.
-  - **Text = app.** Stacked layout: the amount strip opens the app; the strip spans the full
-    widget width and reaches from the top of the amount row down to the widget's bottom edge,
-    padding included (a tap just below the text must not drink). The streak chip (its whole
-    touch box) opens the app as well. Side-by-side layout: the whole text column (amount and
-    chip, full height, out to the widget's edge) opens the app.
+  - **Bottle = drink.** Only a tap on the bottle calls `addIntake()`. The zone is the bottle's
+    drawing box (the bottle with its small sparkle margin left and right), in every layout,
+    also while a level animation or the idle wave plays.
+  - **Everything else = app.** Any other spot opens the app, out to the widget's edges: beside
+    the bottle, above it, the amount text and the space below it, the streak chip.
   - Undo icon = `undoLast()`; it stays on top of the other zones.
   - Touch targets ≥ 48 dp where the size allows it.
 - A widget tap gives a short vibration tick as confirmation (`VIBRATE` permission).
@@ -180,13 +191,20 @@ loop of the surface wave (the user asked for it; the bottle should look alive, n
   no update from the app). After a theme switch the static pair underneath shows, correct and
   still, until the next update; a configuration change in a live process refreshes at once.
 - Bitmap budget as above. If 24 full-size frames do not fit, use fewer distinct frames at the
-  same loop length (16, 12, 8; a frame then fills several flipper children, sharing one
-  `Bitmap`). Idle frames are never scaled down. If 8 do not fit: no idle wave.
-- No idle flipper when all frames would be identical (the wave is flat at 0 % and 100 %) or
-  when the system setting "remove animations" is on.
+  same loop length (16, 12, 8): the flipper then has one child per frame and a longer interval
+  (loop length ÷ frames), so every frame is shown equally long. Idle frames are never scaled
+  down. If 8 do not fit: no idle wave.
+- No idle flipper when all frames would be identical (the wave is flat at 0 % and 100 %), when
+  the system setting "remove animations" is on, or when the user switched it off: setting
+  `widgetIdleWave` (default on), in the app as a switch "Welle im Widget" with the supporting
+  line "Das Wasser bewegt sich leicht, auch wenn nichts passiert." Switching it refreshes the
+  widgets at once. It only governs the idle loop; the level animation on change stays.
 - The change animation leads into the loop: its last frame is the loop's frame 0, and the wave
   keeps moving during the rise or fall instead of freezing. The closing update must still land
-  inside the hold, so the idle frames are rendered before the wait ends, not after it.
+  inside the hold, so the idle frames are rendered before the wait ends, not after it. Because
+  that update is large and the launcher needs a few hundred milliseconds to show it, the hold
+  is about one second long, and the update is sent as the motion ends, not later: the still
+  moment between the end of the motion and the first idle frame should stay near 0.3 s.
 
 ## Bottle (shared visual)
 
@@ -228,7 +246,7 @@ front, so one "back" leaves the app.
 
 Settings: Tagesziel, Menge pro Tap, Wasserfarbe (six swatches, the selected one marked, the
 bottle on the Heute screen changes immediately), Flasche (two choices: "füllt sich" / "leert
-sich"), Erinnerungen an/aus, aktiv von/bis.
+sich"), Welle im Widget an/aus, Erinnerungen an/aus, aktiv von/bis.
 
 Same palette as the bottle, light and dark theme, no dynamic color (the bottle is the identity).
 Adaptive launcher icon: a drop or the bottle.

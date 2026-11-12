@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Night mode: only the flipper drawn for dark mode shows (see values/styles.xml). -->
+    <style name="WidgetIdleLight">
+        <item name="android:visibility">gone</item>
+    </style>
+
+    <style name="WidgetIdleDark">
+        <item name="android:visibility">visible</item>
+    </style>
+</resources>

@@ -163,6 +163,28 @@ fun SettingsScreen(
             }
 
             SoftCard {
+                val enabled = state.settings.widgetIdleWave
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .toggleable(value = enabled, role = Role.Switch, onValueChange = viewModel::setWidgetIdleWave)
+                        .heightIn(min = 56.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = stringResource(R.string.settings_idle_wave), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = stringResource(R.string.settings_idle_wave_text),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Switch(checked = enabled, onCheckedChange = null)
+                }
+            }
+
+            SoftCard {
                 val enabled = state.settings.remindersEnabled
                 Row(
                     modifier = Modifier

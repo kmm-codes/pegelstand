@@ -14,7 +14,7 @@ After every action the widgets are refreshed and the reminder alarm is reschedul
 result (printed by `am broadcast` as `data="…"`) is a one-line status, for example:
 
 ```
-now=2026-11-12 15:00:00 (fixed) day=2026-11-12 yesterday=0 ml total=0 / 2 L (0/2000 ml) tap=250 color=BLUE mode=FILL streak=0/0 reminderDue=true remindersToday=0 nextWakeUp=2026-11-12 15:00:00
+now=2026-11-12 15:00:00 (fixed) day=2026-11-12 yesterday=0 ml total=0 / 2 L (0/2000 ml) tap=250 color=BLUE mode=FILL idleWave=true streak=0/0 reminderDue=true remindersToday=0 nextWakeUp=2026-11-12 15:00:00
 ```
 
 On Git Bash for Windows, prefix commands that contain a `/`-path argument with `MSYS_NO_PATHCONV=1`.
@@ -46,6 +46,7 @@ Every debug action refreshes the widgets afterwards, so a clock jump shows on th
 | Amount per tap (50–1000, steps of 50) | `SET_ML_PER_TAP --ei ml 250` |
 | Water colour | `SET_COLOR --es color TURQUOISE` (`BLUE`, `TURQUOISE`, `MINT`, `LAVENDER`, `PINK`, `CORAL`) |
 | Bottle direction | `SET_BOTTLE_MODE --es mode DRAIN` (`FILL`: fills as she drinks, `DRAIN`: starts full and empties) |
+| Widget idle wave on/off | `SET_IDLE_WAVE --ez enabled false` |
 | Clear all data (intakes, day goals, settings, reminder bookkeeping) | `CLEAR_DATA` |
 | Status line only | `STATUS` |
 

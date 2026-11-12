@@ -28,6 +28,12 @@ import kotlin.math.roundToInt
 /** A widget size in dp, as the launcher reports it. */
 internal data class SizeDp(val width: Float, val height: Float)
 
+/**
+ * The idle wave of one static update: [bitmaps], one per flipper child (one per distinct frame),
+ * shown [intervalMs] apart, drawn for night mode if [dark].
+ */
+internal class IdleFrames(val bitmaps: List<Bitmap>, val intervalMs: Int, val dark: Boolean)
+
 /** Bottle bitmap size in pixels. */
 internal data class PixelSize(val width: Int, val height: Int) {
     val bytes: Long get() = width.toLong() * height * 4
@@ -41,9 +47,19 @@ internal data class PixelSize(val width: Int, val height: Int) {
 internal class WidgetViews(context: Context) {
     private val context: Context = context.applicationContext
 
-    /** The final state: static bottle image, no flipper (removing the flipper stops it). */
-    fun still(id: Int, state: TodayState, sizes: List<SizeDp>): RemoteViews =
-        combine(sizes) { size -> entry(id, state, size, Bottle.Still) }
+    /**
+     * A static state: the static bottle image (both modes on Android 12+) and, on top, the idle
+     * wave's looping flipper if [idle] is given. Replaces any level animation's flipper (removing
+     * it stops it). Every size entry shares the same idle bitmaps.
+     */
+    fun still(id: Int, state: TodayState, sizes: List<SizeDp>, idle: IdleFrames?): RemoteViews =
+        combine(sizes) { size -> entry(id, state, size, Bottle.Still(idle)) }
+
+    /** Bytes of the static images [still] renders for [sizes] (a light and a dark one on Android 12+). */
+    fun stillBytes(state: TodayState, sizes: List<SizeDp>): Long {
+        val images = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 2 else 1
+        return sizes.sumOf { bottlePixels(layout(state, it)).bytes * images }
+    }
 
     /**
      * The animation's start: the new texts and controls, the static image hidden, and a fresh
@@ -68,15 +84,22 @@ internal class WidgetViews(context: Context) {
         return PixelSize(max(1, (widthPx * scale).roundToInt()), max(1, (heightPx * scale).roundToInt()))
     }
 
-    /** One bottle image. The same arguments always give the same pixels. */
-    fun render(renderer: BottleRenderer, size: PixelSize, state: TodayState, look: BottleLook, dark: Boolean): Bitmap {
+    /** One bottle image at wave phase [phase]. The same arguments always give the same pixels. */
+    fun render(
+        renderer: BottleRenderer,
+        size: PixelSize,
+        state: TodayState,
+        look: BottleLook,
+        dark: Boolean,
+        phase: Float = WidgetIdle.STILL_PHASE,
+    ): Bitmap {
         val bitmap = createBitmap(size.width, size.height)
         renderer.draw(
             canvas = Canvas(bitmap),
             width = size.width.toFloat(),
             height = size.height.toFloat(),
             fillFraction = look.fill,
-            wavePhase = WAVE_PHASE,
+            wavePhase = phase,
             waterColor = state.waterColor,
             goldMix = look.gold,
             dark = dark,
@@ -88,7 +111,7 @@ internal class WidgetViews(context: Context) {
         (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
     private sealed interface Bottle {
-        data object Still : Bottle
+        class Still(val idle: IdleFrames?) : Bottle
 
         class Frames(val bitmaps: List<Bitmap>) : Bottle
     }
@@ -110,18 +133,18 @@ internal class WidgetViews(context: Context) {
         val density = context.resources.displayMetrics.density
         val fontScale = max(context.resources.configuration.fontScale, 1f)
 
-        // Tap zones: the root (bottle and every spot outside the zones below) adds an intake; the
-        // open-app zone lies under the content, whose views let taps through except chip and undo.
+        // Tap zones: only the bottle's box (the frames container: always visible, the bottle
+        // image's size, flippers inside it take no taps) adds an intake; the root, that is every
+        // other spot out to the widget's edges, opens the app; chip box and undo lie on top.
         val padding = (layout.padding * density).roundToInt()
         views.setViewPadding(R.id.widget_content, padding, padding, padding, padding)
         if (modern) views.setBoolean(ROOT, "setClipToOutline", true)
-        views.setOnClickPendingIntent(ROOT, tapIntent(WidgetTapReceiver.ACTION_ADD, id))
-        views.setContentDescription(ROOT, context.getString(R.string.widget_add_description, state.mlPerTap))
-        views.setOnClickPendingIntent(R.id.widget_open, openAppIntent(id))
-        // Stacked: the strip's bottom padding is the content padding, so it ends at the widget edge.
-        if (stacked) views.setViewPadding(R.id.widget_open, 0, 0, 0, padding)
+        views.setOnClickPendingIntent(ROOT, openAppIntent(id))
+        views.setContentDescription(ROOT, context.getString(R.string.widget_open_description))
+        views.setOnClickPendingIntent(R.id.widget_frames, tapIntent(WidgetTapReceiver.ACTION_ADD, id))
+        views.setContentDescription(R.id.widget_frames, context.getString(R.string.widget_add_description, state.mlPerTap))
 
-        // Amount: "drunk / goal"; the open-app zone underneath takes its taps.
+        // Amount: "drunk / goal"; taps on it fall through to the root.
         views.setTextViewText(R.id.widget_amount, amountText(state))
         views.setTextViewTextSize(R.id.widget_amount, TypedValue.COMPLEX_UNIT_SP, layout.amountFontSize / fontScale)
         if (modern) {
@@ -138,7 +161,8 @@ internal class WidgetViews(context: Context) {
         views.setViewVisibility(if (stacked) R.id.widget_chip_box else R.id.widget_chip, chipVisibility)
         views.setTextViewText(R.id.widget_chip, "🔥 ${state.streak.current}")
         views.setTextViewTextSize(R.id.widget_chip, TypedValue.COMPLEX_UNIT_SP, layout.chipFontSize / fontScale)
-        // Side by side the chip lies in the open-app column; stacked its touch box opens the app.
+        // Side by side the chip lies in the text column (root: opens the app). Stacked its touch box
+        // opens the app itself, since it may overlap the bottle box.
         if (stacked) views.setOnClickPendingIntent(R.id.widget_chip_box, openAppIntent(id))
 
         // Undo, only when today has an intake.
@@ -163,26 +187,22 @@ internal class WidgetViews(context: Context) {
             if (stacked) {
                 views.setViewLayoutHeight(R.id.widget_chip_box, layout.controlSize, dip)
                 if (layout.controlRowHeight > 0f) views.setViewLayoutHeight(R.id.widget_control_row, layout.controlRowHeight, dip)
-                // The strip's spacer has the amount row's height; the strip adds the bottom padding.
-                views.setViewLayoutHeight(R.id.widget_open_row, layout.amountRowHeight, dip)
             } else {
                 // Exact widths on both sides of the row, so the XML weights have nothing left to share.
                 views.setViewLayoutWidth(R.id.widget_text_column, layout.textColumnWidth, dip)
-                // The open-app row mirrors it: a gap as wide as the bottle box, then the zone.
-                views.setViewLayoutWidth(R.id.widget_open_gap, layout.bottleWidth, dip)
-                views.setViewLayoutWidth(R.id.widget_open, layout.openColumnWidth, dip)
             }
         }
 
         val percent = (state.shownFill * 100).roundToInt()
         views.setContentDescription(R.id.widget_bottle, context.getString(R.string.widget_bottle_description, percent))
         // Both cases replace the flipper container's content: a static update detaches (and so
-        // stops) any flipper; an animation always inflates a fresh one that starts at child 0.
+        // stops) any level animation; each update inflates a fresh flipper that starts at child 0.
         views.removeAllViews(R.id.widget_frames)
         when (bottle) {
-            Bottle.Still -> {
+            is Bottle.Still -> {
                 setStillImage(views, state, layout)
                 views.setViewVisibility(R.id.widget_bottle, View.VISIBLE)
+                bottle.idle?.let { views.addView(R.id.widget_frames, idleFlipper(it)) }
             }
             is Bottle.Frames -> {
                 views.setViewVisibility(R.id.widget_bottle, View.INVISIBLE)
@@ -215,6 +235,21 @@ internal class WidgetViews(context: Context) {
         return views
     }
 
+    /**
+     * The idle loop: one child per frame, [IdleFrames.intervalMs] apart. Its layout's style shows it
+     * only while the launcher's night mode matches the mode the frames were drawn for.
+     */
+    private fun idleFlipper(idle: IdleFrames): RemoteViews {
+        val views = RemoteViews(context.packageName, if (idle.dark) R.layout.widget_idle_dark else R.layout.widget_idle_light)
+        views.setInt(R.id.widget_idle, "setFlipInterval", idle.intervalMs)
+        for (bitmap in idle.bitmaps) {
+            val frame = RemoteViews(context.packageName, R.layout.widget_idle_frame)
+            frame.setImageViewBitmap(R.id.widget_idle_frame, bitmap)
+            views.addView(R.id.widget_idle, frame)
+        }
+        return views
+    }
+
     private fun tapIntent(action: String, id: Int): PendingIntent {
         val intent = Intent(context, WidgetTapReceiver::class.java).setAction(action)
         return PendingIntent.getBroadcast(context, id, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
@@ -231,9 +266,6 @@ internal class WidgetViews(context: Context) {
         /** Longest bitmap side, so a large widget does not push a huge bitmap through the launcher. */
         private const val MAX_BITMAP_PX = 600f
 
-        /** A fixed wave phase: the widget shows the wave at rest. */
-        private const val WAVE_PHASE = 0.9f
-
         private val DEFAULT_SIZE = SizeDp(110f, 110f)
 
         /** The flipper's children in `widget_flipper.xml`, in order. */
@@ -246,6 +278,10 @@ internal class WidgetViews(context: Context) {
             R.id.widget_frame_20, R.id.widget_frame_21, R.id.widget_frame_22, R.id.widget_frame_23,
             R.id.widget_frame_24, R.id.widget_frame_25, R.id.widget_frame_26, R.id.widget_frame_27,
             R.id.widget_frame_28, R.id.widget_frame_29, R.id.widget_frame_30, R.id.widget_frame_31,
+            R.id.widget_frame_32, R.id.widget_frame_33, R.id.widget_frame_34, R.id.widget_frame_35,
+            R.id.widget_frame_36, R.id.widget_frame_37, R.id.widget_frame_38, R.id.widget_frame_39,
+            R.id.widget_frame_40, R.id.widget_frame_41, R.id.widget_frame_42, R.id.widget_frame_43,
+            R.id.widget_frame_44, R.id.widget_frame_45, R.id.widget_frame_46, R.id.widget_frame_47,
         )
 
         fun amountText(state: TodayState): String = AmountFormat.totalOfGoal(state.totalMl, state.goalMl)

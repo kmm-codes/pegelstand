@@ -95,6 +95,8 @@
     <string name="settings_bottle">Flasche</string>
     <string name="settings_bottle_fill">füllt sich</string>
     <string name="settings_bottle_drain">leert sich</string>
+    <string name="settings_idle_wave">Welle im Widget</string>
+    <string name="settings_idle_wave_text">Das Wasser bewegt sich leicht, auch wenn nichts passiert.</string>
     <string name="settings_reminders">Erinnerungen</string>
     <string name="settings_reminders_text">Nur wenn du hinter deinem Tagesplan liegst.</string>
     <string name="settings_reminders_blocked">Benachrichtigungen sind für Pegelstand noch nicht erlaubt.</string>

@@ -202,4 +202,100 @@
         android:layout_height="match_parent"
         android:importantForAccessibility="no"
         android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_32"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_33"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_34"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_35"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_36"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_37"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_38"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_39"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_40"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_41"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_42"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_43"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_44"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_45"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_46"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+    <ImageView
+        android:id="@+id/widget_frame_47"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
 </ViewFlipper>

@@ -1,5 +1,6 @@
 package app.pegelstand.data
 
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -47,6 +48,12 @@ class SettingsMappingTest {
         assertEquals(BottleMode.FILL, SettingsStore.toSettings(emptyPreferences()).bottleMode)
         assertEquals(BottleMode.FILL, SettingsStore.toSettings(preferencesOf(bottleMode to "EMPTY")).bottleMode)
         assertEquals(BottleMode.FILL, SettingsStore.toSettings(preferencesOf(bottleMode to "")).bottleMode)
+    }
+
+    @Test
+    fun `widget idle wave defaults to on and reads back off`() {
+        assertEquals(true, SettingsStore.toSettings(emptyPreferences()).widgetIdleWave)
+        assertEquals(false, SettingsStore.toSettings(preferencesOf(booleanPreferencesKey("widgetIdleWave") to false)).widgetIdleWave)
     }
 
     @Test

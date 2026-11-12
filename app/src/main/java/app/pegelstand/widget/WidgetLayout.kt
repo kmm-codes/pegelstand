@@ -15,9 +15,8 @@ import kotlin.math.min
  * - **Side by side** (wide widgets): bottle on the left at full height, amount line and chip to
  *   its right, undo in the top-right corner.
  *
- * Tap zones (see SPEC): the root adds an intake; an open-app zone covers the text. Stacked, it is
- * a full-width strip of [openStripHeight] at the bottom; side by side, a full-height column of
- * [openColumnWidth] at the end edge.
+ * Tap zones (see SPEC): only the bottle's box ([bottleWidth] x [bottleHeight]) adds an intake;
+ * every other spot opens the app, undo undoes.
  */
 data class WidgetLayout(
     val sideBySide: Boolean,
@@ -34,12 +33,6 @@ data class WidgetLayout(
     /** Width of the text column (amount and chip); side by side only, 0 when stacked. */
     val textColumnWidth: Float,
 ) {
-    /** Stacked: the open-app strip, from the top of the amount row down to the widget's edge. */
-    val openStripHeight: Float get() = amountRowHeight + padding
-
-    /** Side by side: the open-app column, from the text column's start out to the widget's edge. */
-    val openColumnWidth: Float get() = textColumnWidth + padding
-
     companion object {
         const val PADDING = 10f
 

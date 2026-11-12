@@ -1,32 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Square and tall widgets: bottle above the amount, streak chip top left, undo top right.
      Sizes are set per widget size from WidgetLayout on Android 12+; the XML values are the
-     fallback before that. Tap zones: the root adds an intake; the amount strip (widget_open) and
-     the chip open the app; undo undoes. The root has no padding so the strip reaches the widget
-     edges; widget_content carries the padding instead. -->
+     fallback before that. Tap zones: only the bottle's box (widget_frames) adds an intake; the
+     root, out to the widget edges, and the chip open the app; undo undoes. The root has no
+     padding; widget_content carries it. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background">
-
-    <!-- Open-app strip: full width, from the top of the amount row to the bottom edge. Its
-         height is the spacer (sized like widget_amount) plus a bottom padding equal to
-         widget_content's padding, so it lines up with the amount row by construction. It lies
-         below widget_content, whose views pass taps through except undo and chip. -->
-    <FrameLayout
-        android:id="@+id/widget_open"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:contentDescription="@string/widget_open_description"
-        android:paddingBottom="10dp">
-
-        <FrameLayout
-            android:id="@+id/widget_open_row"
-            android:layout_width="match_parent"
-            android:layout_height="48dp" />
-    </FrameLayout>
 
     <FrameLayout
         android:id="@+id/widget_content"
@@ -48,7 +30,8 @@
                 android:visibility="gone" />
 
             <!-- Bottle image and flipper container share one size (set per widget size on Android 12+),
-                 so the last animation frame lands exactly on the static image. -->
+                 so the last animation frame lands exactly on the static image. The container is
+                 the add-intake zone; it is always visible, also while the image is hidden. -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
@@ -62,13 +45,12 @@
                     android:contentDescription="@string/widget_bottle"
                     android:scaleType="fitCenter" />
 
-                <!-- Holds the animation flipper while a level change plays; empty otherwise. -->
+                <!-- Holds the level animation's flipper while a change plays, else the idle wave's. -->
                 <FrameLayout
                     android:id="@+id/widget_frames"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_gravity="center"
-                    android:importantForAccessibility="noHideDescendants" />
+                    android:layout_gravity="center" />
             </FrameLayout>
 
             <TextView
@@ -83,6 +65,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- The chip's touch box opens the app; it lies above the bottle box, which it may overlap. -->
         <FrameLayout
             android:id="@+id/widget_chip_box"
             android:layout_width="wrap_content"

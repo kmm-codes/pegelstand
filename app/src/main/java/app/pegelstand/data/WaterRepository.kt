@@ -43,6 +43,8 @@ data class TodayState(
     val waterColor: WaterColor,
     val bottleMode: BottleMode,
     val streak: Streak,
+    /** The widget shows its idle wave (setting); level changes animate regardless. */
+    val widgetIdleWave: Boolean,
 ) {
     val hasIntakeToday: Boolean get() = totalMl > 0
     val goalReached: Boolean get() = totalMl >= goalMl
@@ -117,6 +119,7 @@ class WaterRepository(
                 waterColor = settings.waterColor,
                 bottleMode = settings.bottleMode,
                 streak = Streaks.compute(days, day),
+                widgetIdleWave = settings.widgetIdleWave,
             )
         }
     }
@@ -179,6 +182,12 @@ class WaterRepository(
     /** A change of direction, not of the level: the widgets update statically. */
     suspend fun setBottleMode(mode: BottleMode) = withContext(NonCancellable) {
         settingsStore.setBottleMode(mode)
+        afterSettingsWrite(time.now(), affectsWidget = true)
+    }
+
+    /** Adds or removes the widgets' idle wave: a static update, no level animation. */
+    suspend fun setWidgetIdleWave(enabled: Boolean) = withContext(NonCancellable) {
+        settingsStore.setWidgetIdleWave(enabled)
         afterSettingsWrite(time.now(), affectsWidget = true)
     }
 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The idle wave, frames drawn for light mode: a loop the launcher plays by itself. Its children
+     (widget_idle_frame) and its interval are set from code (WidgetIdle). The style hides it while
+     the launcher is in night mode, so light frames never show on a dark widget; the static image
+     underneath carries both modes. -->
+<ViewFlipper xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_idle"
+    style="@style/WidgetIdleLight"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:autoStart="true"
+    android:flipInterval="100"
+    android:importantForAccessibility="noHideDescendants" />

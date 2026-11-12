@@ -1,41 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Wide widgets: bottle on the left at full height, amount and streak chip to its right, undo in
      the top-right corner. Sizes are set per widget size from WidgetLayout on Android 12+; the
-     weights are the fallback before that. Tap zones: the root adds an intake; the text column
-     side (widget_open) opens the app; undo undoes. The root has no padding so the open-app zone
-     reaches the widget edges; widget_content carries the padding instead. -->
+     weights are the fallback before that. Tap zones: only the bottle's box (widget_frames) adds an
+     intake; the root, out to the widget edges, opens the app; undo undoes. The root has no
+     padding; widget_content carries it. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background">
-
-    <!-- Open-app zone: mirrors the row in widget_content so it starts where the text column
-         starts and runs to the end edge at full height. The gap stands for widget_content's
-         padding (10dp) plus the bottle box with its margins (6dp); widget_open is 10dp (that
-         padding) wider than the text column, so with the same weights both rows share out the
-         same excess. It lies below widget_content, whose views pass taps through except undo. -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:baselineAligned="false"
-        android:orientation="horizontal">
-
-        <FrameLayout
-            android:id="@+id/widget_open_gap"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="6dp"
-            android:layout_weight="0.6" />
-
-        <FrameLayout
-            android:id="@+id/widget_open"
-            android:layout_width="10dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:contentDescription="@string/widget_open_description" />
-    </LinearLayout>
 
     <FrameLayout
         android:id="@+id/widget_content"
@@ -64,12 +37,12 @@
                     android:contentDescription="@string/widget_bottle"
                     android:scaleType="fitCenter" />
 
-                <!-- Holds the animation flipper while a level change plays; empty otherwise. -->
+                <!-- The add-intake zone, always visible. Holds the level animation's flipper while a
+                     change plays, else the idle wave's. -->
                 <FrameLayout
                     android:id="@+id/widget_frames"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:importantForAccessibility="noHideDescendants" />
+                    android:layout_height="match_parent" />
             </FrameLayout>
 
             <LinearLayout

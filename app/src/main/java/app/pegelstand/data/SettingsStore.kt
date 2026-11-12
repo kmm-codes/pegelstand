@@ -60,6 +60,10 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[Keys.BOTTLE_MODE] = mode.id }
     }
 
+    internal suspend fun setWidgetIdleWave(enabled: Boolean) {
+        dataStore.edit { it[Keys.WIDGET_IDLE_WAVE] = enabled }
+    }
+
     internal suspend fun setRemindersEnabled(enabled: Boolean) {
         dataStore.edit { it[Keys.REMINDERS_ENABLED] = enabled }
     }
@@ -97,6 +101,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
         val ML_PER_TAP = intPreferencesKey("mlPerTap")
         val WATER_COLOR = stringPreferencesKey("waterColor")
         val BOTTLE_MODE = stringPreferencesKey("bottleMode")
+        val WIDGET_IDLE_WAVE = booleanPreferencesKey("widgetIdleWave")
         val REMINDERS_ENABLED = booleanPreferencesKey("remindersEnabled")
         val REMIND_FROM_MIN = intPreferencesKey("remindFrom")
         val REMIND_UNTIL_MIN = intPreferencesKey("remindUntil")
@@ -121,6 +126,7 @@ class SettingsStore(private val dataStore: DataStore<Preferences>) {
                 mlPerTap = SettingsRules.coerceMlPerTap(prefs[Keys.ML_PER_TAP] ?: SettingsRules.DEFAULT_ML_PER_TAP),
                 waterColor = WaterColor.fromId(prefs[Keys.WATER_COLOR]),
                 bottleMode = BottleMode.fromId(prefs[Keys.BOTTLE_MODE]),
+                widgetIdleWave = prefs[Keys.WIDGET_IDLE_WAVE] ?: true,
                 remindersEnabled = prefs[Keys.REMINDERS_ENABLED] ?: true,
                 remindFrom = window.first,
                 remindUntil = window.second,

@@ -54,36 +54,33 @@ class WidgetLayoutTest {
     private val sweep = (110..500 step 10).flatMap { w -> (110..500 step 10).map { h -> w.toFloat() to h.toFloat() } }
 
     @Test
-    fun `stacked open strip covers the amount row down to the edge and leaves bottle and corners`() {
+    fun `stacked bottle box stays clear of the amount row and the corners leave it room`() {
         var withRow = 0
         var withoutRow = 0
         for ((w, h) in sweep) {
             val l = WidgetLayout.compute(w, h, aspect, longest)
             if (l.sideBySide) continue
             if (l.controlRowHeight > 0f) withRow++ else withoutRow++
-            val stripTop = h - l.openStripHeight
-            assertTrue("strip touch height at $w x $h", l.openStripHeight >= 48f)
-            // The bottle (centred in the space above the amount row) stays outside the strip.
-            assertTrue("bottle above strip at $w x $h", l.padding + l.controlRowHeight + l.bottleHeight <= stripTop + 0.5f)
-            // Chip and undo boxes in the top corners do not reach down into the strip.
-            assertTrue("corners above strip at $w x $h", l.padding + l.controlSize <= stripTop)
+            val amountTop = h - l.padding - l.amountRowHeight
+            // The add-intake zone (the bottle box) never reaches into the amount row, which opens the app.
+            assertTrue("bottle above the amount row at $w x $h", l.padding + l.controlRowHeight + l.bottleHeight <= amountTop + 0.5f)
+            assertTrue("amount touch height at $w x $h", l.amountRowHeight + l.padding >= 48f)
         }
         assertTrue("sweep covers stacked with a control row", withRow > 0)
         assertTrue("sweep covers stacked without a control row", withoutRow > 0)
     }
 
     @Test
-    fun `side by side open column starts at the text column and reaches the end edge`() {
+    fun `side by side text column fills the row next to the bottle box`() {
         var count = 0
         for ((w, h) in sweep) {
             val l = WidgetLayout.compute(w, h, aspect, longest)
             if (!l.sideBySide) continue
             count++
             val columnStart = l.padding + WidgetLayout.SIDE_GAP + l.bottleWidth + WidgetLayout.SIDE_GAP
-            assertEquals("column reaches the edge at $w x $h", w, columnStart + l.openColumnWidth, 0.01f)
-            assertTrue("bottle left of the column at $w x $h", l.padding + l.bottleWidth < columnStart)
+            assertEquals("column reaches the padding at $w x $h", w - l.padding, columnStart + l.textColumnWidth, 0.01f)
+            assertTrue("bottle height at $w x $h", l.bottleHeight <= h - 2 * l.padding)
             assertTrue("amount fits the text column at $w x $h", WidgetLayout.estimateWidthEm(longest) * l.amountFontSize <= l.textColumnWidth)
-            assertTrue("column touch width at $w x $h", l.openColumnWidth >= 48f)
         }
         assertTrue("sweep covers side by side", count > 0)
     }

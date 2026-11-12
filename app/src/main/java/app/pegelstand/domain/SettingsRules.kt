@@ -9,6 +9,8 @@ data class Settings(
     val mlPerTap: Int = SettingsRules.DEFAULT_ML_PER_TAP,
     val waterColor: WaterColor = WaterColor.DEFAULT,
     val bottleMode: BottleMode = BottleMode.DEFAULT,
+    /** The widget's idle wave (the water moving while nothing changes); level changes animate regardless. */
+    val widgetIdleWave: Boolean = true,
     val remindersEnabled: Boolean = true,
     val remindFrom: LocalTime = SettingsRules.DEFAULT_REMIND_FROM,
     val remindUntil: LocalTime = SettingsRules.DEFAULT_REMIND_UNTIL,

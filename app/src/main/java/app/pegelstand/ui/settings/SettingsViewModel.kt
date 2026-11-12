@@ -63,6 +63,8 @@ class SettingsViewModel(private val repository: WaterRepository) : ViewModel() {
 
     fun setBottleMode(mode: BottleMode) = write { repository.setBottleMode(mode) }
 
+    fun setWidgetIdleWave(enabled: Boolean) = write { repository.setWidgetIdleWave(enabled) }
+
     fun setRemindersEnabled(enabled: Boolean) = write { repository.setRemindersEnabled(enabled) }
 
     fun setRemindFrom(time: LocalTime) = editWindow(time, currentWindow().second)

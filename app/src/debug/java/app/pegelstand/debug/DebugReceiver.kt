@@ -98,6 +98,11 @@ class DebugReceiver : BroadcastReceiver() {
                 repository.setBottleMode(mode)
                 null
             }
+            ACTION_SET_IDLE_WAVE -> {
+                require(intent.hasExtra("enabled")) { "extra 'enabled' (--ez) missing" }
+                repository.setWidgetIdleWave(intent.getBooleanExtra("enabled", true))
+                null
+            }
             ACTION_SET_GOAL -> {
                 repository.setDailyGoal(requireIntExtra(intent, "ml"))
                 null
@@ -194,6 +199,7 @@ class DebugReceiver : BroadcastReceiver() {
             "tap=${today.mlPerTap}",
             "color=${today.waterColor.id}",
             "mode=${today.bottleMode.id}",
+            "idleWave=${today.widgetIdleWave}",
             "streak=${today.streak.current}/${today.streak.longest}",
             "reminderDue=${isReminderDue(state, now)}",
             "remindersToday=${if (state.remindersSentDay == today.day) state.remindersSentCount else 0}",
@@ -213,6 +219,7 @@ class DebugReceiver : BroadcastReceiver() {
         const val ACTION_CLEAR_TIME = PREFIX + "CLEAR_TIME"
         const val ACTION_RUN_CHECK = PREFIX + "RUN_CHECK"
         const val ACTION_SET_COLOR = PREFIX + "SET_COLOR"
+        const val ACTION_SET_IDLE_WAVE = PREFIX + "SET_IDLE_WAVE"
         const val ACTION_SET_BOTTLE_MODE = PREFIX + "SET_BOTTLE_MODE"
         const val ACTION_SET_GOAL = PREFIX + "SET_GOAL"
         const val ACTION_SET_ML_PER_TAP = PREFIX + "SET_ML_PER_TAP"
